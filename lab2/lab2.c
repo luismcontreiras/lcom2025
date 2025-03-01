@@ -5,8 +5,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+int counter;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   // sets the language of LCF messages (can be either EN-US or PT-PT)
   lcf_set_language("EN-US");
 
@@ -29,24 +31,70 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
-//tested
-int(timer_test_read_config)(uint8_t timer, enum timer_status_field field) {
-	uint8_t *st = malloc(sizeof(uint8_t));
-  if(timer_get_conf(timer, st) != 0) return 1;
-	if(timer_display_conf(timer, *st, field) != 0) return 1;
-    return 0;
+// tested
+int(timer_test_read_config)(uint8_t timer, enum timer_status_field field)
+{
+  uint8_t *st = malloc(sizeof(uint8_t));
+  if (timer_get_conf(timer, st) != 0)
+    return 1;
+  if (timer_display_conf(timer, *st, field) != 0)
+    return 1;
+  return 0;
 }
-//tested
-int(timer_test_time_base)(uint8_t timer, uint32_t freq) {
-  
-  if(timer_set_frequency(timer, freq) != 0) return 1;
+// tested
+int(timer_test_time_base)(uint8_t timer, uint32_t freq)
+{
+
+  if (timer_set_frequency(timer, freq) != 0)
+    return 1;
 
   return 1;
 }
 
-int(timer_test_int)(uint8_t time) {
-  /* To be implemented by the students */
-  printf("%s is not yet implemented!\n", __func__);
+// tested
+int(timer_test_int)(uint8_t time)
+{
+  int ipc_status, r;
+  uint8_t irq_set;
+  message msg;
 
-  return 1;
+  if (timer_subscribe_int(&irq_set) != 0)
+    return 1;
+
+  while (time > 0)
+  { /* You may want to use a different condition */
+    /* Get a request message. */
+    if ((r = driver_receive(ANY, &msg, &ipc_status)) != 0)
+    {
+      printf("driver_receive failed with: %d", r);
+      continue;
+    }
+    if (is_ipc_notify(ipc_status))
+    { /* received notification */
+      switch (_ENDPOINT_P(msg.m_source))
+      {
+      case HARDWARE: /* hardware interrupt notification */
+        if (msg.m_notify.interrupts & irq_set)
+        { /* subscribed interrupt */
+          timer_int_handler();
+          if (counter % 60 == 0)
+          {
+            timer_print_elapsed_time();
+            time--;
+          }
+        }
+        break;
+      default:
+        break; /* no other notifications expected: do nothing */
+      }
+    }
+    else
+    { /* received a standard message, not a notification */
+      /* no standard messages expected: do nothing */
+    }
+  }
+
+  if (timer_unsubscribe_int() != 0) return 1;
+  return 0;
 }
+
