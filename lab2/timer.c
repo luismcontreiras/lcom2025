@@ -7,10 +7,28 @@
 
 int(timer_set_frequency)(uint8_t timer, uint32_t freq)
 {
-  /* To be implemented by the students */
-  printf("%s is not yet implemented!\n", __func__);
+  //gets the configuration info on st
+  uint8_t config;
+  if(timer_get_conf(timer, &config)!=0) return 1;
+  //prepare the same config to receive new values (LSB and MSB)
+  config = (config & 0x0F) | BIT(5) | BIT(4); 
+  
 
-  return 1;
+  //create the new value based on the given frequency
+  uint32_t val = TIMER_FREQ / freq;
+  uint8_t lsb, msb;
+  if(util_get_LSB(val, &lsb) != 0) return 1;
+  if(util_get_MSB(val, &msb) != 0) return 1;
+
+  //tells the timer we will send the lsb and msb
+  if(sys_outb(TIMER_CTRL, config) != 0) return 1;
+
+  //order matters
+  //sends the lsb and the msb
+  if(sys_outb(TIMER_0 + timer, lsb) != 0) return 1;
+  if(sys_outb(TIMER_0 + timer, msb)) return 1;
+
+  return 0;
 }
 
 int(timer_subscribe_int)(uint8_t *bit_no)
@@ -60,6 +78,8 @@ the status byte is divided as
 [0]     - BCD ("bool"
 0 0 00 000 0
 */
+
+//
 
 int(timer_display_conf)(uint8_t timer, uint8_t st, enum timer_status_field field)
 {
