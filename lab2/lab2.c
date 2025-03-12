@@ -48,7 +48,7 @@ int(timer_test_time_base)(uint8_t timer, uint32_t freq)
   if (timer_set_frequency(timer, freq) != 0)
     return 1;
 
-  return 1;
+  return 0;
 }
 
 // tested
