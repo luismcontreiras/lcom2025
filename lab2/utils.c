@@ -15,7 +15,7 @@ int(util_get_MSB)(uint16_t val, uint8_t *msb) {
     if msb is valid -> msb gets 8 highest bits
     if msb is not valid (nullpointer, etc) returns 1
    */
-  return msb ? (*msb = val >> 8, 0) : 1;
+  return msb ? (*msb = (val >> 8) & 0xFF, 0) : 1;
 }
 
 int(util_sys_inb)(int port, uint8_t *value) {
