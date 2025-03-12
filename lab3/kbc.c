@@ -35,7 +35,7 @@ void(kbc_ih)() {
         print("Comunication error\n");
         return;
     }
-
+    //msm q haja erro temos q libertar o OUT_BUF descartar o sys_inb
     
     if(status & KBC_OUT_BUF){ //Check if the output buffer is full
         uint8_t scancode;
