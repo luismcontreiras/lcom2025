@@ -8,6 +8,7 @@
 
 int kbc_hook_id = 1;
 static u_int8_t array_scancodes[2];
+uint32_t sys_inb_count = 0;
 uint8_t size = 0;
 
 
@@ -74,7 +75,7 @@ void(kbc_ih)() {
 
     // check if there was some communications error
     if(status & (KBC_PAR_ERROR | KBC_TIMEOUT_ERROR)){
-        print("Comunication error\n");
+        printf("Comunication error\n");
         return;
     }
     //msm q haja erro temos q libertar o OUT_BUF descartar o sys_inb

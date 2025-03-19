@@ -1,9 +1,10 @@
 #include <lcom/lcf.h>
 
 #include <lcom/lab3.h>
-
 #include <stdbool.h>
 #include <stdint.h>
+
+#include "kbc.h"
 
 
 int main(int argc, char *argv[]) {
