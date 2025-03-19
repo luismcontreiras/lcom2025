@@ -52,6 +52,12 @@ void handler_scancode(uint8_t scancode){
         bool is_break_code = (array_scancodes[0] & 0x80);
         bool is_make_code = !(array_scancodes[0] & 0x80);
         kbd_print_scancode(is_make_code, size, bytes);
+
+        // Check for ESC break code (0x81)
+        if (array_scancodes[size - 1] == 0x81) {
+            goto exit_loop; // Terminate the program
+        }
+
         size=0;
     }
 }

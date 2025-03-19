@@ -30,9 +30,8 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-int(kbd_test_scan)() {
-  /* To be completed by the students */
-  //printf("%s is not yet implemented!\n", __func__);
+int (kbd_test_scan)() {
+  int hook_id = 1; // Global variable for the interrupt hook ID
 
   // Step 1: Subscribe to KBC interrupts
   if (subscribe_kbc_interrupts() != OK) {
@@ -40,7 +39,6 @@ int(kbd_test_scan)() {
       return 1;
   }
 
-  // Main loop to handle interrupts
   while (1) {
       int ipc_status;
       message msg;
@@ -56,29 +54,25 @@ int(kbd_test_scan)() {
                   if (msg.m_notify.interrupts & BIT(hook_id)) {
                       // Call the interrupt handler
                       kbc_ih();
-
-                      // Process the assembled scancode
-                      if (size > 0) {
-                          bool is_make_code = !(bytes[size - 1] & 0x80);
-                          kbd_print_scancode(is_make_code, size, bytes);
-
-                          // Check for ESC break code (0x81)
-                          if (bytes[size - 1] == 0x81) {
-                              goto exit_loop;
-                          }
-                          size = 0; // Reset size for the next scancode
-                      }
                   }
                   break;
               default:
                   break;
           }
       }
+
+      // Exit the loop if the ESC key's break code is detected
+      if (array_scancodes[size - 1] == 0x81) {
+          break;
+      }
   }
 
-  exit_loop:
-    // Step 2: Unsubscribe from KBC interrupts
-    unsubscribe_kbc_interrupts();
+  // Step 2: Unsubscribe from KBC interrupts
+  unsubscribe_kbc_interrupts();
+
+  // Step 3: Print the total number of sys_inb() calls
+  kbd_print_no_sysinb(sys_inb_count);
+
   return 0;
 }
 /*
