@@ -8,9 +8,15 @@
 #define KBC_PAR_ERROR 0x80 // 1000 0000 bit 7
 #define KBC_TIMEOUT_ERROR 0x40 // 0100 0000 bit 6
 
+
 int read_status_register(uint8_t *status);
 
 int read_output_buffer(uint8_t *data);
 
+void handle_scancode(uint8_t scancode);
+
+
+int subscribe_kbc_interrupts();
+int unsubscribe_kbc_interrupts();
 
 

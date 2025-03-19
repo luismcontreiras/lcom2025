@@ -6,12 +6,20 @@
 #include "kbc.h"
 
 
-
-
-
+int kbc_hook_id = 1;
 static u_int8_t array_scancodes[2];
 uint8_t size = 0;
 
+
+// Subscribe to KBC interrupts
+int subscribe_kbc_interrupts() {
+    return sys_irqsetpolicy(IRQ1, IRQ_REENABLE | IRQ_EXCLUSIVE, &kbc_hook_id);
+}
+
+// Unsubscribe from KBC interrupts
+int unsubscribe_kbc_interrupts() {
+    return sys_irqrmpolicy(&kbc_hook_id);
+}
 
 int read_status_register(uint8_t *status){
     return util_sys_inb(KBC_ST_REG, status); 
@@ -43,7 +51,7 @@ void handler_scancode(uint8_t scancode){
     if(size>0 & ((size==1)||(size==2))){
         bool is_break_code = (array_scancodes[0] & 0x80);
         bool is_make_code = !(array_scancodes[0] & 0x80);
-        
+        kbd_print_scancode(is_make_code, size, bytes);
         size=0;
     }
 }
@@ -66,7 +74,22 @@ void(kbc_ih)() {
     //msm q haja erro temos q libertar o OUT_BUF descartar o sys_inb
 
     
+
+    if (status & KBC_OBF) {
+        uint8_t scancode;
+
+        // Read the scancode from the output buffer
+        if (read_output_buffer(&scancode) != OK) {
+            printf("Error reading output buffer\n");
+            return;
+        }
+
+        //Pass the scancode to the scancode handler
+        handle_scancode(scancode);
+    }
+}
     
+    /*
     if(status & KBC_OUT_BUF){ //Check if the output buffer is full
         uint8_t scancode;
 
@@ -82,9 +105,7 @@ void(kbc_ih)() {
     //scancode handler
 
     //libertar OUT_BUF
-
-
-}
+*/
 
 
 // global array uint8_t[2]

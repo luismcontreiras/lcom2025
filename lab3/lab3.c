@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+
 int main(int argc, char *argv[]) {
   // sets the language of LCF messages (can be either EN-US or PT-PT)
   lcf_set_language("EN-US");
@@ -31,11 +32,59 @@ int main(int argc, char *argv[]) {
 
 int(kbd_test_scan)() {
   /* To be completed by the students */
-  printf("%s is not yet implemented!\n", __func__);
+  //printf("%s is not yet implemented!\n", __func__);
 
+  // Step 1: Subscribe to KBC interrupts
+  if (subscribe_kbc_interrupts() != OK) {
+      printf("Failed to subscribe to KBC interrupts\n");
+      return 1;
+  }
+
+  // Main loop to handle interrupts
+  while (1) {
+      int ipc_status;
+      message msg;
+
+      // Wait for an interrupt
+      if (driver_receive(ANY, &msg, &ipc_status) != OK) {
+          continue;
+      }
+
+      if (is_ipc_notify(ipc_status)) {
+          switch (_ENDPOINT_P(msg.m_source)) {
+              case HARDWARE:
+                  if (msg.m_notify.interrupts & BIT(hook_id)) {
+                      // Call the interrupt handler
+                      kbc_ih();
+
+                      // Process the assembled scancode
+                      if (size > 0) {
+                          bool is_make_code = !(bytes[size - 1] & 0x80);
+                          kbd_print_scancode(is_make_code, size, bytes);
+
+                          // Check for ESC break code (0x81)
+                          if (bytes[size - 1] == 0x81) {
+                              goto exit_loop;
+                          }
+                          size = 0; // Reset size for the next scancode
+                      }
+                  }
+                  break;
+              default:
+                  break;
+          }
+      }
+  }
+
+  exit_loop:
+    // Step 2: Unsubscribe from KBC interrupts
+    unsubscribe_kbc_interrupts();
+  return 0;
+}
+/*
   return 1;
 }
-
+*/
 int(kbd_test_poll)() {
   /* To be completed by the students */
   printf("%s is not yet implemented!\n", __func__);
