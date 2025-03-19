@@ -7,6 +7,8 @@
 #define KBC_OUT_BUF 0x60
 #define KBC_PAR_ERROR 0x80 // 1000 0000 bit 7
 #define KBC_TIMEOUT_ERROR 0x40 // 0100 0000 bit 6
+#define IRQ1 1 
+#define KBC_OBF 0x01  
 
 extern uint8_t size;
 extern uint8_t array_scancodes[2];

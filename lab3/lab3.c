@@ -6,7 +6,6 @@
 
 #include "kbc.h"
 
-
 int main(int argc, char *argv[]) {
   // sets the language of LCF messages (can be either EN-US or PT-PT)
   lcf_set_language("EN-US");
@@ -31,42 +30,38 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-int (kbd_test_scan)() {
+int(kbd_test_scan)() {
   int hook_id = 1; // Global variable for the interrupt hook ID
 
   // Step 1: Subscribe to KBC interrupts
   if (subscribe_kbc_interrupts() != OK) {
-      printf("Failed to subscribe to KBC interrupts\n");
-      return 1;
+    printf("Failed to subscribe to KBC interrupts\n");
+    return 1;
   }
 
-  while (1) {
-      int ipc_status;
-      message msg;
+  while (array_scancodes[0] != 0x81) {
+    int ipc_status;
+    message msg;
+    // Wait for an interrupt
+    if (driver_receive(ANY, &msg, &ipc_status) != OK) {
+      continue;
+    }
 
-      // Wait for an interrupt
-      if (driver_receive(ANY, &msg, &ipc_status) != OK) {
-          continue;
-      }
-
-      if (is_ipc_notify(ipc_status)) {
-          switch (_ENDPOINT_P(msg.m_source)) {
-              case HARDWARE:
-                  if (msg.m_notify.interrupts & BIT(hook_id)) {
-                      // Call the interrupt handler
-                      kbc_ih();
-                  }
-                  break;
-              default:
-                  break;
+    if (is_ipc_notify(ipc_status)) {
+      switch (_ENDPOINT_P(msg.m_source)) {
+        case HARDWARE:
+          if (msg.m_notify.interrupts & BIT(hook_id)) {
+            // Call the interrupt handler
+            kbc_ih();
           }
-      }
-
-      // Exit the loop if the ESC key's break code is detected
-      if (array_scancodes[size - 1] == 0x81) {
+          break;
+        default:
           break;
       }
+    }
   }
+  printf("%x|", array_scancodes[0]);
+  printf("%x\n", array_scancodes[1]);
 
   // Step 2: Unsubscribe from KBC interrupts
   unsubscribe_kbc_interrupts();

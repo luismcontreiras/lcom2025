@@ -7,9 +7,10 @@
 
 
 int kbc_hook_id = 1;
-static u_int8_t array_scancodes[2];
+u_int8_t array_scancodes[2];
 uint32_t sys_inb_count = 0;
 uint8_t size = 0;
+uint8_t status;
 
 
 // Subscribe to KBC interrupts
@@ -34,7 +35,7 @@ int read_output_buffer(uint8_t *data){
 }
 
 
-void handler_scancode(uint8_t scancode){
+void handle_scancode(uint8_t scancode){
     if(scancode==0xE0){ //2 bytes scancode
         
         array_scancodes[0] = scancode;
@@ -49,16 +50,9 @@ void handler_scancode(uint8_t scancode){
         }
     }
 
-    if(size>0 & ((size==1)||(size==2))){
-        bool is_break_code = (array_scancodes[0] & 0x80);
+    if ((size > 0) && ((size == 1) || (size == 2))) {
         bool is_make_code = !(array_scancodes[0] & 0x80);
-        kbd_print_scancode(is_make_code, size, bytes);
-
-        // Check for ESC break code (0x81)
-        if (array_scancodes[size - 1] == 0x81) {
-            goto exit_loop; // Terminate the program
-        }
-
+        kbd_print_scancode(is_make_code, size, array_scancodes);
         size=0;
     }
 }
@@ -96,6 +90,7 @@ void(kbc_ih)() {
     }
 }
     
+
     /*
     if(status & KBC_OUT_BUF){ //Check if the output buffer is full
         uint8_t scancode;
