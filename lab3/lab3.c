@@ -150,10 +150,6 @@ int(kbd_test_timed_scan)(uint8_t n) {
                         // Reset idle time counter
                         idle_time = 0;
 
-                        // Check if the Esc key was released (break code 0x81)
-                        if (size == 1 && array_scancodes[0] == 0x81) {
-                            goto exit_loop;
-                        }
                     }
                     if (msg.m_notify.interrupts & BIT(timer_hook_id)) {
                         timer_ih(); // Call timer interrupt handler
