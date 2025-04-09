@@ -75,16 +75,43 @@ int(kbd_test_scan)() {
   return 1;
 }
 */
+
+
+
 int(kbd_test_poll)() {
-  /* To be completed by the students */
-  printf("%s is not yet implemented!\n", __func__);
+  uint8_t status, scancode;
 
-  return 1;
-}
+  while (array_scancodes[0] != 0x81) {
+      // Read the status register
+      if (read_status_register(&status) != OK) {
+          printf("Error reading status register\n");
+          continue;
+      }
 
-int(kbd_test_timed_scan)(uint8_t n) {
-  /* To be completed by the students */
-  printf("%s is not yet implemented!\n", __func__);
+      // Check if the output buffer is full and there are no errors
+      if ((status & KBC_OBF) && !(status & KBC_AUX) && !(status & (KBC_PAR_ERROR | KBC_TIMEOUT_ERROR))) {
+          // Read the scancode from the output buffer
+          if (read_output_buffer(&scancode) != OK) {
+              printf("Error reading output buffer\n");
+              continue;
+          }
 
-  return 1;
+          // Handle the scancode
+          handle_scancode(scancode);
+
+      }
+
+      // Add a small delay to avoid excessive CPU usage
+      tickdelay(micros_to_ticks(DELAY_US)); // e.g., DELAY_US = 20000
+  }
+
+  // Re-enable keyboard interrupts before exiting
+  if (enable_keyboard_interrupts() != OK) {
+      printf("Failed to re-enable keyboard interrupts\n");
+  }
+
+  // Print the number of sys_inb() calls
+  kbd_print_no_sysinb(sys_inb_count);
+
+  return 0;
 }
