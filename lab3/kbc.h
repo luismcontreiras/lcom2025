@@ -10,6 +10,7 @@
 #define IRQ1 1 
 #define KBC_OBF 0x01  
 
+extern uint32_t sys_inb_count;
 extern uint8_t size;
 extern uint8_t array_scancodes[2];
 extern uint32_t sys_inb_count;
@@ -19,7 +20,6 @@ int read_status_register(uint8_t *status);
 int read_output_buffer(uint8_t *data);
 
 void handle_scancode(uint8_t scancode);
-
 
 int subscribe_kbc_interrupts();
 int unsubscribe_kbc_interrupts();
