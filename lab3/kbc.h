@@ -8,6 +8,7 @@
 #define KBC_PAR_ERROR 0x80 // 1000 0000 bit 7
 #define KBC_TIMEOUT_ERROR 0x40 // 0100 0000 bit 6
 #define IRQ1 1 
+#define IRQ_TIMER    0
 #define KBC_OBF 0x01  
 #define KBC_AUX 0x20
 #define DELAY_US 20000 // 20 milliseconds
@@ -21,6 +22,7 @@ extern uint32_t sys_inb_count;
 extern uint8_t size;
 extern uint8_t array_scancodes[2];
 extern uint32_t sys_inb_count;
+extern uint8_t idle_time;      // Idle time counter (in seconds)
 
 int read_status_register(uint8_t *status);
 
@@ -35,6 +37,8 @@ int enable_keyboard_interrupts();
 int read_command_byte(uint8_t *cmd_byte);
 int write_command_byte(uint8_t cmd_byte);
 int write_kbc_command(uint8_t cmd);
+int subscribe_timer_interrupts();
+int unsubscribe_timer_interrupts();
 
 
 

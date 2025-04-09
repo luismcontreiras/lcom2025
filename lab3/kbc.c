@@ -7,11 +7,12 @@
 
 
 int kbc_hook_id = 1;
+int timer_hook_id = 0;
 u_int8_t array_scancodes[2];
 uint32_t sys_inb_count = 0;
 uint8_t size = 0;
 uint8_t status;
-static uint8_t idle_time = 0;      // Idle time counter (in seconds)
+uint8_t idle_time = 0;      // Idle time counter (in seconds)
 
 
 
@@ -23,6 +24,15 @@ int subscribe_kbc_interrupts() {
 // Unsubscribe from KBC interrupts
 int unsubscribe_kbc_interrupts() {
     return sys_irqrmpolicy(&kbc_hook_id);
+}
+
+
+int subscribe_timer_interrupts() {
+    return sys_irqsetpolicy(IRQ_TIMER, IRQ_REENABLE, &timer_hook_id);
+}
+
+int unsubscribe_timer_interrupts() {
+    return sys_irqrmpolicy(&timer_hook_id);
 }
 
 int read_status_register(uint8_t *status){

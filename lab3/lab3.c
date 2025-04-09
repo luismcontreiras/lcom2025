@@ -115,3 +115,71 @@ int(kbd_test_poll)() {
 
   return 0;
 }
+
+
+
+
+
+int(kbd_test_timed_scan)(uint8_t n) {
+    int kbd_hook_id = IRQ1;
+    int timer_hook_id = IRQ_TIMER;
+
+    // Subscribe to keyboard and timer interrupts
+    if (subscribe_kbc_interrupts(&kbd_hook_id) != OK || subscribe_timer_interrupts(&timer_hook_id) != OK) {
+        printf("Failed to subscribe interrupts\n");
+        return 1;
+    }
+
+    // Main loop to handle interrupts
+    while (array_scancodes[0] != 0x81) {
+        int ipc_status;
+        message msg;
+
+        // Wait for an interrupt
+        if (driver_receive(ANY, &msg, &ipc_status) != OK) {
+            continue;
+        }
+
+        // Handle interrupts
+        if (is_ipc_notify(ipc_status)) {
+            switch (_ENDPOINT_P(msg.m_source)) {
+                case HARDWARE:
+                    if (msg.m_notify.interrupts & BIT(kbd_hook_id)) {
+                        kbc_ih(); // Call keyboard interrupt handler
+
+                        // Reset idle time counter
+                        idle_time = 0;
+
+                        // Check if the Esc key was released (break code 0x81)
+                        if (size == 1 && array_scancodes[0] == 0x81) {
+                            goto exit_loop;
+                        }
+                    }
+                    if (msg.m_notify.interrupts & BIT(timer_hook_id)) {
+                        timer_ih(); // Call timer interrupt handler
+
+                        // Check if idle time exceeds the limit
+                        if (idle_time >= n) {
+                            goto exit_loop;
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+exit_loop:
+    // Unsubscribe from interrupts
+    if (unsubscribe_kbc_interrupts(&kbd_hook_id) != OK || unsubscribe_timer_interrupts(&timer_hook_id) != OK) {
+        printf("Failed to unsubscribe interrupts\n");
+    }
+
+    // Print the number of sys_inb() calls
+    kbd_print_no_sysinb(sys_inb_count);
+
+    return 0;
+}
+
+
