@@ -1,6 +1,7 @@
 #include <lcom/lcf.h>
 
 #include <stdint.h>
+#include "kbc.h"
 
 int(util_get_LSB)(uint16_t val, uint8_t *lsb)
 {
@@ -33,6 +34,10 @@ int(util_sys_inb)(int port, uint8_t *value)
    we only need the lesser 8 bits
    */
   *value = 0xFF & val32;
+
+  #ifdef LAB3
+    sys_inb_count++; // Increment the counter only if LAB3 is defined
+  #endif
   /*
    give the same return as the original sys_inb
    */
