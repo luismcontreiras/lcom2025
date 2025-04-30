@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include "graphics.h"
 
 // Any header files included below this line should have been created by you
 
@@ -31,36 +32,27 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
-int (set_video) (uint16_t submode){
-  reg86_t reg86;
-  //set up with 0s
-  memset(&reg86, 0, sizeof(reg86));
 
-  reg86.intno = 0x10;
-
-  //setting to video (0x0003 for text)
-  reg86.ax = 0x4F02;
-  //BIT 14 is linear mem mapping
-  reg86.bx = submode | BIT(14);
-
-  if(sys_int86(&reg86) != 0){
-    printf("sys_int86 error");
-    return 1;
-  }
-  return 0;
-}
 
 int(video_test_init)(uint16_t mode, uint8_t delay) {
 
   //reg86 to send bios instructions
 
-  set_video(mode);
+  if(set_to_video_mode(mode) != 0){
+    printf("Failed to set video mode\n");
+    return 1;
+  };
 
   sleep(delay);
 
-  vg_exit();
+
+  if(vg_exit() != 0) {
+    printf("Failed to exit video mode\n");
+    return 1;
+    }
+
   printf("video_test_init finished\n");
-  //back to text
+
 
 
   return 0;
