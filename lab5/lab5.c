@@ -31,12 +31,39 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
+int (set_video) (uint16_t submode){
+  reg86_t reg86;
+  //set up with 0s
+  memset(&reg86, 0, sizeof(reg86));
+
+  reg86.intno = 0x10;
+
+  //setting to video (0x0003 for text)
+  reg86.ax = 0x4F02;
+  //BIT 14 is linear mem mapping
+  reg86.bx = submode | BIT(14);
+
+  if(sys_int86(&reg86) != 0){
+    printf("sys_int86 error");
+    return 1;
+  }
+  return 0;
+}
 
 int(video_test_init)(uint16_t mode, uint8_t delay) {
-  /* To be completed */
-  printf("%s(0x%03x, %u): under construction\n", __func__, mode, delay);
 
-  return 1;
+  //reg86 to send bios instructions
+
+  set_video(mode);
+
+  sleep(delay);
+
+  vg_exit();
+  printf("video_test_init finished\n");
+  //back to text
+
+
+  return 0;
 }
 
 int(video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y,
