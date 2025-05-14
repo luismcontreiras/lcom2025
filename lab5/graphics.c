@@ -42,3 +42,10 @@ int (set_to_text_mode) (){
     }
     return 0;
 }
+
+int (set_frame_buffer) (uint16_t mode, vbe_mode_info_t mode_info){
+    memset(&mode_info, 0, sizeof(mode_info));
+    //Returns information on the input VBE mode, including screen dimensions, color depth and VRAM physical address
+    if(vbe_get_mode_info(mode, &mode_info)) return 1;
+}
+

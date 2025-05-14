@@ -64,6 +64,12 @@ int(video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y,
   printf("%s(0x%03X, %u, %u, %u, %u, 0x%08x): under construction\n",
          __func__, mode, x, y, width, height, color);
 
+  // map video with frame buffer
+  // set graphic mode
+  // drwa rectangle (might need to normalize colors for different modes)
+  // use esc to terminate
+  // vg_exit();
+
   return 1;
 }
 
