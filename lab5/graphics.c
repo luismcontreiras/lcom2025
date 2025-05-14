@@ -1,7 +1,7 @@
 #include "graphics.h"
 #include <lcom/lcf.h>
 
-static void *video_mem;
+static uint8_t *video_mem;
 
 int(set_to_video_mode)(uint16_t submode) {
   reg86_t reg86;
@@ -73,5 +73,47 @@ int(set_frame_buffer)(uint16_t mode) {
   if (video_mem == MAP_FAILED || video_mem == NULL)
     panic("couldn't map video memory");
 
+  return 0;
+}
+
+int(set_color)(uint32_t color, uint32_t *new_color) {
+  if (mode_info.BitsPerPixel != 32) {
+    *new_color = color & (BIT(mode_info.BitsPerPixel) - 1);
+  }
+  else {
+    *new_color = color;
+  }
+  return 0;
+}
+
+int (vg_draw_pixel)(uint16_t x, uint16_t y, uint32_t color) {
+  // Check if coordinates are valid
+  if(x > mode_info.XResolution || y > mode_info.YResolution) return 1;
+  
+  // Calculate bytes per pixel (rounding up)
+  unsigned BytesPerPixel = (mode_info.BitsPerPixel + 7) / 8;
+
+  // Calculate memory index where the pixel should be placed
+  unsigned int index = (mode_info.XResolution * y + x) * BytesPerPixel;
+
+  // Copy the color bytes to the frame buffer at the calculated index
+  if (memcpy(&video_mem[index], &color, BytesPerPixel) == NULL) return 1;
+
+  return 0;
+}
+
+int (vg_draw_hline)(uint16_t x, uint16_t y, uint16_t len, uint32_t color) {
+  for (unsigned i = 0 ; i < len ; i++)   
+    if (vg_draw_pixel(x+i, y, color) != 0) return 1;
+  return 0;
+}
+
+
+int (vg_draw_rectangle)(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint32_t color) {
+  for(unsigned i = 0; i < height ; i++)
+    if (vg_draw_hline(x, y+i, width, color) != 0) {
+      vg_exit();
+      return 1;
+    }
   return 0;
 }
