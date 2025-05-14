@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "kbc.h"
+
 // Any header files included below this line should have been created by you
 
 extern vbe_mode_info_t mode_info;
@@ -82,6 +84,7 @@ int(video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y,
   vg_draw_rectangle(x, y, width, height, new_color);
   // use esc to terminate
   // vg_exit();
+   wait_for_esc();
   
   if (vg_exit() != 0) return 1;
   //return 1;
