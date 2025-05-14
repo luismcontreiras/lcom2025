@@ -9,6 +9,10 @@
 
 // Any header files included below this line should have been created by you
 
+
+extern vbe_mode_info_t mode_info;
+
+
 int main(int argc, char *argv[]) {
   // sets the language of LCF messages (can be either EN-US or PT-PT)
   lcf_set_language("EN-US");
