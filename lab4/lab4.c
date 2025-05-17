@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include "i8254.h"
+#include "kbc.h"
+#include "mouse.h"
 
 // Any header files included below this line should have been created by you
 
@@ -32,32 +35,62 @@ int main(int argc, char *argv[]) {
 
 
 int (mouse_test_packet)(uint32_t cnt) {
+  int ipc_status, r;
+  message msg;
+  uint8_t mouse_mask;
+  
+  // Add these extern declarations to access variables from mouse.c
+  extern uint8_t byte_index;
+  extern struct packet pp;
+  
+  if (mouse_subscribe_int(&mouse_mask) != 0) return 1;
+  if (mouse_enable_data_reporting() != 0) {
+      mouse_unsubscribe_int();
+      return 1;
+  }
+  
+  uint32_t packets_processed = 0;
+  
+  while (packets_processed < cnt) {
+      if ((r = driver_receive(ANY, &msg, &ipc_status)) != 0) {
+          printf("driver_receive failed with: %d", r);
+          continue;
+      }
 
-    int ipc_status;
-    message msg;
-    uint8_t mouse_mask;
-    if (mouse_subscribe_int(&mouse_mask) != 0) return 1;
-    if (mouse_enable_data_reporting() != 0) {
-        mouse_unsubscribe_int();
-        return 1;
-    }
-    while(cnt){
-        if ((r = driver_receive(ANY, &msg, &ipc_status)) != 0) {
-            continue;
-        }
-
-        if (is_ipc_notify(ipc_status)) {
-            switch (_ENDPOINT_P(msg.m_source)) {
+      if (is_ipc_notify(ipc_status)) {
+          switch (_ENDPOINT_P(msg.m_source)) {
               case HARDWARE:
-                if (msg.m_notify.interrupts & mouse_mask) {
-                }
-                break;
+                  if (msg.m_notify.interrupts & mouse_mask) {
+                      mouse_ih();
+                      // Synchronize bytes into a packet
+                      mouse_sync_bytes();
+                      
+                      // If we've collected all 3 bytes of a packet
+                      if (byte_index == 3) {
+                          byte_index = 0; // Reset for next packet
+                          
+                          // Convert bytes to a packet structure
+                          mouse_bytes_to_packet();
+                          
+                          // Display the packet
+                          mouse_print_packet(&pp);
+                          
+                          // Count this packet
+                          packets_processed++;
+                      }
+                  }
+                  break;
               default:
-                break;
-            }
+                  break;
           }
-    }
-    return 1;
+      }
+  }
+  
+  // Disable data reporting and unsubscribe from interrupts
+  mouse_write(DISABLE_DATA_REPORTING);
+  if (mouse_unsubscribe_int() != 0) return 1;
+  
+  return 0;
 }
 
 int (mouse_test_async)(uint8_t idle_time) {
@@ -66,7 +99,7 @@ int (mouse_test_async)(uint8_t idle_time) {
     return 1;
 }
 
-int (mouse_test_gesture)() {
+int (mouse_test_gesture)(uint8_t x_len, uint8_t tolerance) {
     /* To be completed */
     printf("%s: under construction\n", __func__);
     return 1;
