@@ -86,8 +86,10 @@ int (mouse_test_packet)(uint32_t cnt) {
       }
   }
   
-  // Disable data reporting and unsubscribe from interrupts
-  mouse_write(DISABLE_DATA_REPORTING);
+  // Desativar o report de dados do rato
+  if (mouse_write(DISABLE_DATA_REPORTING) != 0) return 1;
+
+  // Desativar as interrupções
   if (mouse_unsubscribe_int() != 0) return 1;
   
   return 0;

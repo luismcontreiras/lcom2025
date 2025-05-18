@@ -133,7 +133,7 @@ int enable_keyboard_interrupts() {
 
 int read_command_byte(uint8_t *cmd_byte) {
     // Issue the "Read Command Byte" command (0x20)
-    if (write_kbc_command(0x20) != OK) {
+    if (write_kbc_command(KBC_CMD_REG,0x20) != OK) {
         return 1; // Error
     }
 
@@ -147,7 +147,7 @@ int read_command_byte(uint8_t *cmd_byte) {
 
 int write_command_byte(uint8_t cmd_byte) {
     // Issue the "Write Command Byte" command (0x60)
-    if (write_kbc_command(0x60) != OK) {
+    if (write_kbc_command(KBC_CMD_REG,0x60) != OK) {
         return 1; // Error
     }
 
@@ -159,7 +159,7 @@ int write_command_byte(uint8_t cmd_byte) {
     return 0; // Success
 }
 
-int write_kbc_command(uint8_t cmd) {
+int write_kbc_command(uint8_t port,uint8_t cmd) {
     uint8_t status;
 
     // Wait until the input buffer is not full
@@ -174,7 +174,7 @@ int write_kbc_command(uint8_t cmd) {
     }
 
     // Write the command to the KBC command register
-    if (sys_outb(KBC_CMD_REG, cmd) != OK) {
+    if (sys_outb(port, cmd) != OK) {
         return 1; // Error
     }
 

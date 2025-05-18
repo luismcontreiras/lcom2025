@@ -43,7 +43,7 @@ void timer_ih();
 int enable_keyboard_interrupts();
 int read_command_byte(uint8_t *cmd_byte);
 int write_command_byte(uint8_t cmd_byte);
-int write_kbc_command(uint8_t cmd);
+int write_kbc_command(uint8_t port,uint8_t cmd);
 int subscribe_timer_interrupts();
 int unsubscribe_timer_interrupts();
 

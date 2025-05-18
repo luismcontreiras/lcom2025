@@ -49,8 +49,8 @@ int (mouse_write)(uint8_t cmd) {
 
     do {
         attempts--;
-        if (write_kbc_command(WRITE_BYTE_MOUSE) != 0) return 1;
-        if (sys_outb(KBC_IN_BUF, cmd) != 0) return 1;
+        if (write_kbc_command(KBC_CMD_REG,WRITE_BYTE_MOUSE) != 0) return 1;
+        if (write_kbc_command(KBC_IN_BUF, cmd) != 0) return 1;
         tickdelay(micros_to_ticks(20000));
         if (util_sys_inb(KBC_OUT_BUF, &status) != 0) return 1;
         if (status == ACK) return 0;
