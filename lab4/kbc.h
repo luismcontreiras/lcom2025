@@ -23,6 +23,7 @@
 #define ACK 0xFA    
 #define NACK 0xFE
 #define DISABLE_DATA_REPORTING 0xF5
+#define ENABLE_DATA_REPORTING 0xF4
 
 
 extern uint32_t sys_inb_count;

@@ -44,7 +44,7 @@ int (mouse_test_packet)(uint32_t cnt) {
   extern struct packet pp;
   
   if (mouse_subscribe_int(&mouse_mask) != 0) return 1;
-  if (mouse_enable_data_reporting() != 0) {
+  if (mouse_write(ENABLE_DATA_REPORTING) != 0) {
       mouse_unsubscribe_int();
       return 1;
   }
