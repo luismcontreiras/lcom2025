@@ -1,6 +1,6 @@
 // IMPORTANT: you must include the following line in all your C files
 #include <lcom/lcf.h>
-
+#include <lcom/timer.h>
 #include <stdint.h>
 #include <stdio.h>
 #include "i8254.h"
@@ -8,6 +8,7 @@
 #include "mouse.h"
 
 // Any header files included below this line should have been created by you
+
 
 int main(int argc, char *argv[]) {
   // sets the language of LCF messages (can be either EN-US or PT-PT)
