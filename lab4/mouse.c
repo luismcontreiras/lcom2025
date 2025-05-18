@@ -15,8 +15,31 @@ int (mouse_unsubscribe_int)() {
 return sys_irqrmpolicy(&mouse_hook_id);
 }
   
-void (mouse_ih)(){
-    read_output_buffer(&c_byte);
+void (mouse_ih)() {
+    uint8_t status;
+    
+    // Read the KBC status register
+    if (read_status_register(&status) != 0) {
+        printf("Error reading status register\n");
+        return;
+    }
+    
+    // Check for communication errors
+    if (status & (KBC_PAR_ERROR | KBC_TIMEOUT_ERROR)) {
+        printf("Mouse communication error\n");
+        return;
+    }
+    
+    // Check if output buffer is full AND the data is from the mouse (AUX bit set)
+    if ((status & KBC_OBF) && (status & KBC_AUX)) {
+        if (read_output_buffer(&c_byte) != 0) {
+            printf("Error reading from output buffer\n");
+            return;
+        }
+    } else {
+        // No mouse data available or not for us
+        return;
+    }
 }
 
 void (mouse_sync_bytes)() {
@@ -47,14 +70,33 @@ int (mouse_write)(uint8_t cmd) {
     uint8_t attempts = 10;
     uint8_t status;
 
+    // Temporarily disable mouse interrupts
+    if (sys_irqdisable(&mouse_hook_id) != 0) return 1;
+
     do {
         attempts--;
-        if (write_kbc_command(KBC_CMD_REG,WRITE_BYTE_MOUSE) != 0) return 1;
-        if (write_kbc_command(KBC_IN_BUF, cmd) != 0) return 1;
+        if (write_kbc_command(KBC_CMD_REG, WRITE_BYTE_MOUSE) != 0) {
+            sys_irqenable(&mouse_hook_id); // Re-enable before returning
+            return 1;
+        }
+        if (write_kbc_command(KBC_IN_BUF, cmd) != 0) {
+            sys_irqenable(&mouse_hook_id); // Re-enable before returning
+            return 1;
+        }
         tickdelay(micros_to_ticks(20000));
-        if (util_sys_inb(KBC_OUT_BUF, &status) != 0) return 1;
-        if (status == ACK) return 0;
+        if (util_sys_inb(KBC_OUT_BUF, &status) != 0) {
+            sys_irqenable(&mouse_hook_id); // Re-enable before returning
+            return 1;
+        }
+        if (status == ACK) {
+            // Re-enable mouse interrupts before returning
+            sys_irqenable(&mouse_hook_id);
+            return 0;
+        }
     } while (status != ACK && attempts > 0);
 
+    // Re-enable mouse interrupts before returning
+    sys_irqenable(&mouse_hook_id);
     return 1;
 }
+
