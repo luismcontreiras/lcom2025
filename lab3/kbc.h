@@ -3,11 +3,13 @@
 
 #include <lcom/lcf.h>
 
+
 #define KBC_ST_REG 0x64
 #define KBC_OUT_BUF 0x60
 #define KBC_PAR_ERROR 0x80 // 1000 0000 bit 7
 #define KBC_TIMEOUT_ERROR 0x40 // 0100 0000 bit 6
 #define IRQ1 1 
+#define IRQ_MOUSE 12
 #define IRQ_TIMER    0
 #define KBC_OBF 0x01  
 #define KBC_AUX 0x20
@@ -16,6 +18,12 @@
 #define KBC_IN_BUF  0x60  // Input Buffer
 #define KBC_CMD_REG 0x64  // Command Register
 #define KBC_IBF     0x02  // Input Buffer Full (bit 1)
+
+#define WRITE_BYTE_MOUSE 0xD4
+#define ACK 0xFA    
+#define NACK 0xFE
+#define DISABLE_DATA_REPORTING 0xF5
+#define ENABLE_DATA_REPORTING 0xF4
 
 
 extern uint32_t sys_inb_count;
@@ -36,7 +44,7 @@ void timer_ih();
 int enable_keyboard_interrupts();
 int read_command_byte(uint8_t *cmd_byte);
 int write_command_byte(uint8_t cmd_byte);
-int write_kbc_command(uint8_t cmd);
+int write_kbc_command(uint8_t port,uint8_t cmd);
 int subscribe_timer_interrupts();
 int unsubscribe_timer_interrupts();
 
