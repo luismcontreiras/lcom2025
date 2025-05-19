@@ -97,9 +97,66 @@ int (mouse_test_packet)(uint32_t cnt) {
 }
 
 int (mouse_test_async)(uint8_t idle_time) {
-    /* To be completed */
-    printf("%s(%u): under construction\n", __func__, idle_time);
-    return 1;
+    int ipc_status, r;
+    message msg;
+    uint8_t mouse_mask, timer_mask;
+    int timer_counter = 0;
+    int hz = sys_hz();
+
+    // Externs for mouse packet handling
+    extern uint8_t byte_index;
+    extern struct packet pp;
+
+    // Subscribe mouse interrupts
+    if (mouse_subscribe_int(&mouse_mask) != 0) return 1;
+    // Subscribe timer interrupts
+    if (timer_subscribe_int(&timer_mask) != 0) {
+        mouse_unsubscribe_int();
+        return 1;
+    }
+    // Enable mouse data reporting
+    if (mouse_write(ENABLE_DATA_REPORTING) != 0) {
+        mouse_unsubscribe_int();
+        timer_unsubscribe_int();
+        return 1;
+    }
+
+    while (timer_counter < idle_time * hz) {
+        if ((r = driver_receive(ANY, &msg, &ipc_status)) != 0) {
+            printf("driver_receive failed with: %d", r);
+            continue;
+        }
+        if (is_ipc_notify(ipc_status)) {
+            switch (_ENDPOINT_P(msg.m_source)) {
+                case HARDWARE:
+                    if (msg.m_notify.interrupts & timer_mask) {
+                        timer_int_handler(); // Call the timer interrupt handler
+                        timer_counter++;
+                    }
+                    if (msg.m_notify.interrupts & mouse_mask) {
+                        mouse_ih();
+                        mouse_sync_bytes();
+                        if (byte_index == 3) {
+                            byte_index = 0;
+                            mouse_bytes_to_packet();
+                            mouse_print_packet(&pp);
+                            timer_counter = 0; // Reset timer on mouse activity
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    // Disable mouse data reporting
+    mouse_write(DISABLE_DATA_REPORTING);
+    // Unsubscribe interrupts
+    mouse_unsubscribe_int();
+    timer_unsubscribe_int();
+
+    return 0;
 }
 
 int (mouse_test_gesture)(uint8_t x_len, uint8_t tolerance) {
