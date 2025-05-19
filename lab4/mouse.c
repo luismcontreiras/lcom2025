@@ -62,8 +62,18 @@ void (mouse_bytes_to_packet)() {
     pp.mb = (pp.bytes[0] & BIT(2)) >> 2;
     pp.x_ov = (pp.bytes[0] & BIT(6)) >> 6;
     pp.y_ov = (pp.bytes[0] & BIT(7)) >> 7;
-    pp.delta_x = (int8_t)pp.bytes[1];
-    pp.delta_y = (int8_t)pp.bytes[2];
+
+    // Correct sign extension for delta_x
+    if (pp.bytes[0] & BIT(4))
+        pp.delta_x = (int16_t)pp.bytes[1] | 0xFF00;
+    else
+        pp.delta_x = (int16_t)pp.bytes[1] & 0x00FF;
+
+    // Correct sign extension for delta_y
+    if (pp.bytes[0] & BIT(5))
+        pp.delta_y = (int16_t)pp.bytes[2] | 0xFF00;
+    else
+        pp.delta_y = (int16_t)pp.bytes[2] & 0x00FF;
 }
 
 int (mouse_write)(uint8_t cmd) {
