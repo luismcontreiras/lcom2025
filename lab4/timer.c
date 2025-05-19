@@ -10,14 +10,21 @@ int counter = 0;
 
 int(timer_set_frequency)(uint8_t timer, uint32_t freq)
 {
-  // gets the configuration info on st
   uint8_t config;
   if (timer_get_conf(timer, &config) != 0)
     return 1;
-  // prepare the same config to receive new values (LSB and MSB)
-  config = (config & 0x0F) | TIMER_LSB_MSB;
 
-  // create the new value based on the given frequency
+  uint8_t timer_sel;
+  switch (timer) {
+    case 0: timer_sel = TIMER_SEL0; break;
+    case 1: timer_sel = TIMER_SEL1; break;
+    case 2: timer_sel = TIMER_SEL2; break;
+    default: return 1;
+  }
+
+  // Preserve mode and BCD bits, set correct timer and access mode
+  uint8_t control = timer_sel | TIMER_LSB_MSB | (config & 0x0F);
+
   uint32_t val = TIMER_FREQ / freq;
   uint8_t lsb, msb;
   if (util_get_LSB(val, &lsb) != 0)
@@ -25,15 +32,11 @@ int(timer_set_frequency)(uint8_t timer, uint32_t freq)
   if (util_get_MSB(val, &msb) != 0)
     return 1;
 
-  // tells the timer we will send the lsb and msb
-  if (sys_outb(TIMER_CTRL, config) != 0)
+  if (sys_outb(TIMER_CTRL, control) != 0)
     return 1;
-
-  // order matters
-  // sends the lsb and the msb
   if (sys_outb(TIMER_0 + timer, lsb) != 0)
     return 1;
-  if (sys_outb(TIMER_0 + timer, msb))
+  if (sys_outb(TIMER_0 + timer, msb) != 0)
     return 1;
 
   return 0;
