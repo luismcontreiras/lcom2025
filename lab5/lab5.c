@@ -99,11 +99,63 @@ int(video_test_pattern)(uint16_t mode, uint8_t no_rectangles, uint32_t first, ui
   return 1;
 }
 
-int(video_test_xpm)(xpm_map_t xpm, uint16_t x, uint16_t y) {
-  /* To be completed */
-  printf("%s(%8p, %u, %u): under construction\n", __func__, xpm, x, y);
+int(video_test_xpm)(xpm_map_t xpm, uint16_t xi, uint16_t yi) {
+    printf("Starting video_test_xpm()\n");
 
-  return 1;
+    uint16_t mode = 0x105;
+
+     if (set_frame_buffer(mode) != OK) {
+        printf("Failed to map frame buffer\n");
+        vg_exit();
+        return 1;
+    }
+
+    if (set_to_video_mode(mode) != 0) {
+        printf("Failed to set video mode\n");
+        return 1;
+    }
+
+    if (vbe_get_mode_info(mode, &mode_info) != 0) {
+        printf("Failed to get VBE mode info\n");
+        vg_exit();
+        return 1;
+    }
+
+   
+    xpm_image_t img;
+    uint8_t* pixmap = xpm_load(xpm, XPM_INDEXED, &img);
+
+    if (pixmap == NULL) {
+        printf("Failed to load XPM image\n");
+        vg_exit();
+        return 1;
+    }
+
+    int width = img.width;
+    int height = img.height;
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            uint8_t color_index = pixmap[y * width + x];
+
+            if (color_index != 0) { 
+                vg_draw_pixel(xi + x, yi + y, color_index);
+            }
+        }
+    }
+
+    // Step 6: Wait for ESC key
+    wait_for_esc();
+
+    // Step 7: Clean up
+    free(pixmap);
+    if (vg_exit() != 0) {
+        printf("Failed to exit graphics mode\n");
+        return 1;
+    }
+
+    printf("video_test_xpm finished successfully\n");
+    return 0;
 }
 
 int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint16_t yf,
