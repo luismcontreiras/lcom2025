@@ -91,12 +91,70 @@ int(video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y,
   return 0;
 }
 
-int(video_test_pattern)(uint16_t mode, uint8_t no_rectangles, uint32_t first, uint8_t step) {
-  /* To be completed */
-  printf("%s(0x%03x, %u, 0x%08x, %d): under construction\n", __func__,
-         mode, no_rectangles, first, step);
 
-  return 1;
+int(video_test_pattern)(uint16_t mode, uint8_t no_rectangles, uint32_t first, uint8_t step) {
+ 
+
+  if (set_frame_buffer(mode) != 0)
+    return 1;
+
+  
+  if (set_to_video_mode(mode) != 0) {
+    printf("Failed to set video mode\n");
+    return 1;
+  }
+
+  
+  uint16_t width = mode_info.XResolution / no_rectangles;
+  uint16_t height = mode_info.YResolution / no_rectangles;
+
+  
+  for (uint8_t row = 0; row < no_rectangles; row++) {
+    for (uint8_t col = 0; col < no_rectangles; col++) {
+      uint32_t color;
+      
+      // DIrect color mode
+      if (mode_info.MemoryModel == 0x06) {
+        //Color formula
+
+        uint32_t r_first = (first >> mode_info.RedFieldPosition) & ((1 << mode_info.RedMaskSize) - 1);
+        uint32_t g_first = (first >> mode_info.GreenFieldPosition) & ((1 << mode_info.GreenMaskSize) - 1);
+        uint32_t b_first = (first >> mode_info.BlueFieldPosition) & ((1 << mode_info.BlueMaskSize) - 1);
+        
+        
+        uint32_t r = (r_first + col * step) % (1 << mode_info.RedMaskSize);
+        uint32_t g = (g_first + row * step) % (1 << mode_info.GreenMaskSize);
+        uint32_t b = (b_first + (col + row) * step) % (1 << mode_info.BlueMaskSize);
+        
+        
+        color = (r << mode_info.RedFieldPosition) | 
+                (g << mode_info.GreenFieldPosition) | 
+                (b << mode_info.BlueFieldPosition);
+      } 
+      // Other color modes
+      else { 
+        
+        color = (first + (row * no_rectangles + col) * step) % (1 << mode_info.BitsPerPixel);
+      }
+      
+      // Draw rectangle with color from function
+      if (vg_draw_rectangle(col * width, row * height, width, height, color) != 0) {
+        vg_exit();
+        return 1;
+      }
+    }
+  }
+
+  
+  if (wait_for_esc() != 0) {
+    vg_exit();
+    return 1;
+  }
+  
+  
+  if (vg_exit() != 0) return 1;
+  
+  return 0;
 }
 
 int(video_test_xpm)(xpm_map_t xpm, uint16_t xi, uint16_t yi) {
