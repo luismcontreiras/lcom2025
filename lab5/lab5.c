@@ -173,15 +173,13 @@ int(video_test_xpm)(xpm_map_t xpm, uint16_t xi, uint16_t yi) {
     return 1;
   }
 
-  xpm_image_t img;
-
-  uint8_t *pixmap = draw_xpm(xi, yi, xpm, img);
+  draw_xpm(xi, yi, xpm);
 
   // Step 6: Wait for ESC key
   wait_for_esc();
 
   // Step 7: Clean up
-  free(pixmap);
+
   if (vg_exit() != 0) {
     printf("Failed to exit graphics mode\n");
     return 1;
@@ -194,8 +192,6 @@ int(video_test_xpm)(xpm_map_t xpm, uint16_t xi, uint16_t yi) {
 int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint16_t yf,
                      int16_t speed, uint8_t fr_rate) {
 
-  xpm_image_t img;
-
   int ipc_status, r;
   message msg;
   // u_int8_t array_scancodes[2];
@@ -203,18 +199,18 @@ int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint1
   uint8_t timer_bit_no, kbc_bit_no;
 
   // Subscribe to keyboard interrupts
+
   if (subscribe_kbc_interrupts(&kbc_bit_no) != 0) {
     printf("Failed to subscribe to keyboard interrupts\n");
     return 1;
   }
+
   if (timer_subscribe_int(&timer_bit_no) != 0) {
     printf("Failed to subscribe to timer interrupts\n");
     return 1;
   }
 
   if (timer_set_frequency(0, fr_rate) != 0) {
-    timer_unsubscribe_int();
-    unsubscribe_kbc_interrupts();
     printf("Failed to set timer frequency\n");
     return 1;
   }
@@ -230,7 +226,10 @@ int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint1
     return 1;
   }
 
-  draw_xpm(xi, yi, xpm, img);
+  if (draw_xpm(xi, yi, xpm) != 0) {
+    printf("Failed to draw xpm");
+    return 1;
+  };
 
   while (array_scancodes[0] != 0x81 && (xi < xf || yi < yf)) {
     // Get a request message
@@ -243,7 +242,7 @@ int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint1
       switch (_ENDPOINT_P(msg.m_source)) {
         case HARDWARE:
           if (msg.m_notify.interrupts & BIT(1)) {
-            kbc_ih(); 
+            kbc_ih();
           }
           if (msg.m_notify.interrupts & BIT(0)) {
             timer_int_handler();
@@ -260,26 +259,24 @@ int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint1
             }
             if (yi < yf) {
               yi += speed;
-              if (yi > xf)
-                yi = xf;
+              if (yi > yf)
+                yi = yf;
             }
 
-            draw_xpm(xi, yi, xpm, img);
-          }
-          break;
-        default:
-          break;
+            if (draw_xpm(xi, yi, xpm) != 0) {
+              printf("Failed to draw xpm");
+              return 1;
+            };
+          }       
       }
     }
   }
 
-  //free(pixmap);
-
-  if (vg_exit() != 0) {
+   if (vg_exit() != 0) {
     printf("Failed to exit graphics mode\n");
     return 1;
   }
-
+  
   if (timer_unsubscribe_int() != 0) {
     printf("Failed to unsubscribe timer\n");
     return 1;
@@ -289,6 +286,8 @@ int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint1
     printf("Failed to unsubscribe keyboard\n");
     return 1;
   }
+
+ 
 
   printf("video_test_move finished successfully\n");
   return 0;

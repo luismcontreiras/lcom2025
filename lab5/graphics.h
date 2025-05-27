@@ -20,6 +20,6 @@ int (vg_draw_pixel)(uint16_t x, uint16_t y, uint32_t color);
 int (vg_draw_hline)(uint16_t x, uint16_t y, uint16_t len, uint32_t color);
 int (vg_draw_rectangle)(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint32_t color);
 
-uint8_t* (draw_xpm)(uint16_t xi, uint16_t yi,xpm_map_t xpm, xpm_image_t xpm_img);
+int (draw_xpm)(uint16_t xi, uint16_t yi,xpm_map_t xpm);
 
 #endif // GRAPHICS_H

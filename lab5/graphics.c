@@ -119,8 +119,10 @@ int (vg_draw_rectangle)(uint16_t x, uint16_t y, uint16_t width, uint16_t height,
 }
 
 
-uint8_t* (draw_xpm)(uint16_t xi, uint16_t yi,xpm_map_t xpm, xpm_image_t xpm_img){  
+int (draw_xpm)(uint16_t xi, uint16_t yi,xpm_map_t xpm){  
     
+  xpm_image_t xpm_img;
+
   uint8_t* pixmap = xpm_load(xpm, XPM_INDEXED, &xpm_img);
 
     int width = xpm_img.width;
@@ -136,6 +138,6 @@ uint8_t* (draw_xpm)(uint16_t xi, uint16_t yi,xpm_map_t xpm, xpm_image_t xpm_img)
         }
     }
 
-    return pixmap;
+    return 0;
 }
 
