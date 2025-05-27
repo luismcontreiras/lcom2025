@@ -13,6 +13,8 @@ uint32_t sys_inb_count = 0;
 uint8_t size = 0;
 uint8_t status;
 uint8_t idle_time = 0;      // Idle time counter (in seconds)
+uint8_t last_scancode = 0;  // Last processed scancode for movement detection
+bool new_scancode_ready = false; // Flag indicating a new scancode was processed
 
 
 
@@ -65,6 +67,13 @@ void handle_scancode(uint8_t scancode){
     if ((size > 0) && ((size == 1) || (size == 2))) {
         bool is_make_code = !(array_scancodes[0] & 0x80);
         kbd_print_scancode(is_make_code, size, array_scancodes);
+        
+        // Store the scancode for movement detection (only for make codes)
+        if (is_make_code) {
+            last_scancode = array_scancodes[0];
+            new_scancode_ready = true;
+        }
+        
         size=0;
     }
 

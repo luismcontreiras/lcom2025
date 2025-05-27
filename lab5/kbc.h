@@ -17,12 +17,20 @@
 #define KBC_CMD_REG 0x64  // Command Register
 #define KBC_IBF     0x02  // Input Buffer Full (bit 1)
 
+// Arrow key scancodes
+#define ARROW_UP_SCANCODE    0x48
+#define ARROW_DOWN_SCANCODE  0x50
+#define ARROW_LEFT_SCANCODE  0x4B
+#define ARROW_RIGHT_SCANCODE 0x4D
+#define ESC_SCANCODE         0x81
+
 
 extern uint32_t sys_inb_count;
 extern uint8_t size;
 extern uint8_t array_scancodes[2];
-extern uint32_t sys_inb_count;
 extern uint8_t idle_time;      // Idle time counter (in seconds)
+extern uint8_t last_scancode;  // Last processed scancode for movement detection
+extern bool new_scancode_ready; // Flag indicating a new scancode was processed
 
 int read_status_register(uint8_t *status);
 

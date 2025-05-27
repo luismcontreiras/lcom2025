@@ -189,18 +189,130 @@ int(video_test_xpm)(xpm_map_t xpm, uint16_t xi, uint16_t yi) {
   return 0;
 }
 
+// int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint16_t yf,
+//                      int16_t speed, uint8_t fr_rate) {
+
+//   int ipc_status, r;
+//   message msg;
+  
+//   uint16_t mode = 0x105;
+//   uint8_t timer_bit_no, kbc_bit_no;
+
+//   // Subscribe to keyboard interrupts
+
+//   if (subscribe_kbc_interrupts(&kbc_bit_no) != 0) {
+//     printf("Failed to subscribe to keyboard interrupts\n");
+//     return 1;
+//   }
+
+//   if (timer_subscribe_int(&timer_bit_no) != 0) {
+//     printf("Failed to subscribe to timer interrupts\n");
+//     return 1;
+//   }
+
+//   if (timer_set_frequency(0, fr_rate) != 0) {
+//     printf("Failed to set timer frequency\n");
+//     return 1;
+//   }
+
+//   if (set_frame_buffer(mode) != 0) {
+//     printf("Failed to map frame buffer\n");
+//     vg_exit();
+//     return 1;
+//   }
+
+//   if (set_to_video_mode(mode) != 0) {
+//     printf("Failed to set video mode\n");
+//     return 1;
+//   }
+
+//   if (draw_xpm(xi, yi, xpm) != 0) {
+//     printf("Failed to draw xpm");
+//     return 1;
+//   };
+
+//   while (array_scancodes[0] != 0x81 && (xi < xf || yi < yf)) {
+//     // Get a request message
+//     if ((r = driver_receive(ANY, &msg, &ipc_status)) != 0) {
+//       printf("driver_receive failed with: %d", r);
+//       continue;
+//     }
+
+//     if (is_ipc_notify(ipc_status)) {
+//       switch (_ENDPOINT_P(msg.m_source)) {
+//         case HARDWARE:
+//           if (msg.m_notify.interrupts & BIT(1)) {
+//             kbc_ih();
+//           }
+//           if (msg.m_notify.interrupts & BIT(0)) {
+//             timer_int_handler();
+
+//             if (vg_draw_rectangle(xi, yi, 100, 100, 0xFFFFFF) != 0) {
+//               printf("Failed at screen clean\n");
+//               return 1;
+//             }
+
+//             if (xi < xf) {
+//               xi += speed;
+//               if (xi > xf)
+//                 xi = xf;
+//             }
+//             if (yi < yf) {
+//               yi += speed;
+//               if (yi > yf)
+//                 yi = yf;
+//             }
+
+//             if (draw_xpm(xi, yi, xpm) != 0) {
+//               printf("Failed to draw xpm");
+//               return 1;
+//             };
+//           }       
+//       }
+//     }
+//   }
+
+//    if (vg_exit() != 0) {
+//     printf("Failed to exit graphics mode\n");
+//     return 1;
+//   }
+
+//   if (timer_unsubscribe_int() != 0) {
+//     printf("Failed to unsubscribe timer\n");
+//     return 1;
+//   }
+
+//   if (unsubscribe_kbc_interrupts() != 0) {
+//     printf("Failed to unsubscribe keyboard\n");
+//     return 1;
+//   }
+
+ 
+
+//   printf("video_test_move finished successfully\n");
+//   return 0;
+// }
+
+
 int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint16_t yf,
                      int16_t speed, uint8_t fr_rate) {
 
   int ipc_status, r;
   message msg;
-  // u_int8_t array_scancodes[2];
+  
   uint16_t mode = 0x105;
-  uint8_t timer_bit_no, kbc_bit_no;
+  uint8_t timer_bit_no;
+  
+  // Current sprite position
+  uint16_t curr_x = xi;
+  uint16_t curr_y = yi;
+  
+  // Assume sprite dimensions (you may need to adjust based on your XPM)
+  uint16_t sprite_width = 100;  // Adjust based on your sprite
+  uint16_t sprite_height = 100; // Adjust based on your sprite
 
   // Subscribe to keyboard interrupts
-
-  if (subscribe_kbc_interrupts(&kbc_bit_no) != 0) {
+  if (subscribe_kbc_interrupts() != 0) {
     printf("Failed to subscribe to keyboard interrupts\n");
     return 1;
   }
@@ -226,12 +338,12 @@ int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint1
     return 1;
   }
 
-  if (draw_xpm(xi, yi, xpm) != 0) {
+  if (draw_xpm(curr_x, curr_y, xpm) != 0) {
     printf("Failed to draw xpm");
     return 1;
   };
 
-  while (array_scancodes[0] != 0x81 && (xi < xf || yi < yf)) {
+  while (last_scancode != ESC_SCANCODE) {
     // Get a request message
     if ((r = driver_receive(ANY, &msg, &ipc_status)) != 0) {
       printf("driver_receive failed with: %d", r);
@@ -243,30 +355,60 @@ int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint1
         case HARDWARE:
           if (msg.m_notify.interrupts & BIT(1)) {
             kbc_ih();
+            
+            // Handle arrow key movement if a new scancode is ready
+            if (new_scancode_ready) {
+              uint16_t new_x = curr_x;
+              uint16_t new_y = curr_y;
+              
+              switch (last_scancode) {
+                case ARROW_UP_SCANCODE:
+                  if (curr_y >= speed) {
+                    new_y = curr_y - speed;
+                  }
+                  break;
+                case ARROW_DOWN_SCANCODE:
+                  if (curr_y + sprite_height + speed <= mode_info.YResolution) {
+                    new_y = curr_y + speed;
+                  }
+                  break;
+                case ARROW_LEFT_SCANCODE:
+                  if (curr_x >= speed) {
+                    new_x = curr_x - speed;
+                  }
+                  break;
+                case ARROW_RIGHT_SCANCODE:
+                  if (curr_x + sprite_width + speed <= mode_info.XResolution) {
+                    new_x = curr_x + speed;
+                  }
+                  break;
+              }
+              
+              // Only redraw if position changed
+              if (new_x != curr_x || new_y != curr_y) {
+                // Clear old position with black
+                if (vg_draw_rectangle(curr_x, curr_y, sprite_width, sprite_height, 0x000000) != 0) {
+                  printf("Failed to clear old sprite position\n");
+                  return 1;
+                }
+                
+                // Update position
+                curr_x = new_x;
+                curr_y = new_y;
+                
+                // Draw sprite at new position
+                if (draw_xpm(curr_x, curr_y, xpm) != 0) {
+                  printf("Failed to draw xpm");
+                  return 1;
+                }
+              }
+              
+              // Reset the flag
+              new_scancode_ready = false;
+            }
           }
           if (msg.m_notify.interrupts & BIT(0)) {
             timer_int_handler();
-
-            if (vg_draw_rectangle(xi, yi, 100, 100, 0xFFFFFF) != 0) {
-              printf("Failed at screen clean\n");
-              return 1;
-            }
-
-            if (xi < xf) {
-              xi += speed;
-              if (xi > xf)
-                xi = xf;
-            }
-            if (yi < yf) {
-              yi += speed;
-              if (yi > yf)
-                yi = yf;
-            }
-
-            if (draw_xpm(xi, yi, xpm) != 0) {
-              printf("Failed to draw xpm");
-              return 1;
-            };
           }       
       }
     }
@@ -276,7 +418,7 @@ int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint1
     printf("Failed to exit graphics mode\n");
     return 1;
   }
-  
+
   if (timer_unsubscribe_int() != 0) {
     printf("Failed to unsubscribe timer\n");
     return 1;
