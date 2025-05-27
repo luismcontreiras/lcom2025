@@ -1,102 +1,111 @@
 #include "game.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include <lcom/lcf.h>
+#include "../engine/game_engine.h"
 
-// External XPM declarations
-extern xpm_map_t player_xpm;
+// XPM for player sprite
+static xpm_row_t const player_xpm[]  = {
+    "16 16 4 1",
+    "  c None",
+    ". c #000000",
+    "X c #FF0000",
+    "o c #FFFFFF",
+    "                ",
+    "      ....      ",
+    "     .XXXX.     ",
+    "    .XXXXXX.    ",
+    "   .XXXXXXXX.   ",
+    "   .XXXXXXXX.   ",
+    "  .XXXXooXXXX.  ",
+    "  .XXXXooXXXX.  ",
+    "  .XXXXXXXXXX.  ",
+    "  .XXXXXXXXXX.  ",
+    "   .XXXXXXXX.   ",
+    "   .X..XX..X.   ",
+    "    .XX..XX.    ",
+    "    ..    ..    ",
+    "                ",
+    "                "
+};
 
-// Game state
-static Player player;
-static Engine* game_engine = NULL;
+// Player state
+static struct {
+    uint16_t x;
+    uint16_t y;
+    uint8_t sprite_id;
+    uint16_t speed;
+} player;
 
-int game_init(Engine* engine) {
-    if (engine == NULL) return 1;
-    
-    game_engine = engine;
-    
-    // Add background sprite (if available)
-    /*
-    Vector2 bg_pos = {0, 0};
-    int bg_index = engine_add_sprite(engine, background_xpm, XPM_8_8_8, bg_pos);
-    if (bg_index < 0) {
-        printf("Failed to add background sprite\n");
-        // Not fatal, continue
+// Update function to handle player movement
+void game_update(game_engine_t *engine, float delta_time) {
+    // Move player based on arrow key input
+    if (engine_key_pressed(engine, ARROW_UP_SCANCODE)) {
+        if (player.y > player.speed) {
+            player.y -= player.speed;
+        }
     }
-    */
+    if (engine_key_pressed(engine, ARROW_DOWN_SCANCODE)) {
+        if (player.y < engine->screen_height - 16 - player.speed) {
+            player.y += player.speed;
+        }
+    }
+    if (engine_key_pressed(engine, ARROW_LEFT_SCANCODE)) {
+        if (player.x > player.speed) {
+            player.x -= player.speed;
+        }
+    }
+    if (engine_key_pressed(engine, ARROW_RIGHT_SCANCODE)) {
+        if (player.x < engine->screen_width - 16 - player.speed) {
+            player.x += player.speed;
+        }
+    }
+
+    // Update sprite position
+    engine_move_sprite(engine, player.sprite_id, player.x, player.y);
+}
+
+// Render function (not needed for this simple example, but added for completeness)
+void game_render(game_engine_t *engine) {
+    // Nothing to do here - engine will handle rendering the sprite
+}
+
+int game_init() {
+    // Initialize the game engine
+    game_engine_t engine;
     
-    // Add player sprite
-    Vector2 player_pos = {engine->screen_width / 2, engine->screen_height / 2};
-    player.sprite_index = engine_add_sprite(engine, player_xpm, XPM_8_8_8, player_pos);
-    if (player.sprite_index < 0) {
-        printf("Failed to add player sprite\n");
+    // Initialize with 0x105 mode (1024x768) at 60 FPS
+    if (engine_init(&engine, 0x105, 60) != 0) {
+        printf("Failed to initialize game engine\n");
         return 1;
     }
     
-    player.speed = 5;
+    // Clear the screen to black
+    engine_clear_screen(&engine, 0x000000);
     
-    // Register event handlers
-    if (engine_register_handler(engine, EVENT_KEYBOARD, game_keyboard_handler, &player) != 0) {
-        printf("Failed to register keyboard handler\n");
+    // Create player sprite
+    player.x = engine.screen_width / 2 - 8;  // center of screen
+    player.y = engine.screen_height / 2 - 8; // center of screen
+    player.speed = 5; // pixels per frame
+    
+    // Create sprite from XPM
+    player.sprite_id = engine_create_sprite(&engine, player_xpm, player.x, player.y);
+    if (player.sprite_id < 0) {
+        printf("Failed to create player sprite\n");
+        engine_cleanup(&engine);
         return 1;
     }
     
-    if (engine_register_handler(engine, EVENT_TIMER, game_timer_handler, &player) != 0) {
-        printf("Failed to register timer handler\n");
-        return 1;
-    }
+    // Show the sprite
+    engine_show_sprite(&engine, player.sprite_id);
     
-    printf("Game initialized successfully\n");
-    return 0;
-}
-
-void game_keyboard_handler(Event* event, void* user_data) {
-    if (event->type != EVENT_KEYBOARD || game_engine == NULL) return;
+    // Register update and render callbacks
+    engine_set_update_callback(&engine, game_update);
+    engine_set_render_callback(&engine, game_render);
     
-    Player* player = (Player*)user_data;
-    if (player == NULL) return;
+    // Run the game loop
+    int result = engine_run(&engine);
     
-    // Only process key press events (make codes)
-    if (!event->data.keyboard.make_code) return;
+    // Clean up engine resources
+    engine_cleanup(&engine);
     
-    Sprite* sprite = sprite_manager_get(&game_engine->sprite_manager, player->sprite_index);
-    if (sprite == NULL) return;
-    
-    Vector2 delta = {0, 0};
-    
-    // Handle arrow keys
-    switch (event->data.keyboard.scancode) {
-        case KEY_ARROW_UP:
-            delta.y = -player->speed;
-            break;
-        case KEY_ARROW_DOWN:
-            delta.y = player->speed;
-            break;
-        case KEY_ARROW_LEFT:
-            delta.x = -player->speed;
-            break;
-        case KEY_ARROW_RIGHT:
-            delta.x = player->speed;
-            break;
-        default:
-            return; // Ignore other keys
-    }
-    
-    // Apply movement if any
-    if (delta.x != 0 || delta.y != 0) {
-        // Move the sprite
-        sprite_move(sprite, delta);
-        
-        // Check boundaries
-        sprite_check_bounds(sprite, game_engine->screen_width, game_engine->screen_height);
-    }
-}
-
-void game_timer_handler(Event* event, void* user_data) {
-    // This could be used for automatic movement or animations
-    // Not used in this simple example
-}
-
-void game_cleanup(Engine* engine) {
-    // Any game-specific cleanup would go here
-    game_engine = NULL;
+    return result;
 }

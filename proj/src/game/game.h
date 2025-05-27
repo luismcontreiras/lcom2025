@@ -1,58 +1,18 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include "../engine/core/engine.h"
-
+#define ARROW_UP_SCANCODE    0x48
+#define ARROW_DOWN_SCANCODE  0x50
+#define ARROW_LEFT_SCANCODE  0x4B
+#define ARROW_RIGHT_SCANCODE 0x4D
 /**
- * @brief Simple player structure for the game
+ * @brief Initialize and run the game
+ * 
+ * This function initializes the game, creates a player sprite,
+ * sets up event handlers for keyboard input, and runs the main game loop.
+ * 
+ * @return 0 on success, non-zero on failure
  */
-typedef struct {
-    int sprite_index;   // Index of the player sprite in the engine
-    int speed;          // Movement speed
-    Vector2 position;   // Current position
-} Player;
+int game_init();
 
-/**
- * @brief Game state structure
- */
-typedef struct {
-    Player player;
-    Engine* engine;
-    bool game_over;
-} GameState;
-
-/**
- * @brief Initialize the game
- * @param engine The game engine
- * @return 0 on success, non-zero otherwise
- */
-int game_init(Engine* engine);
-
-/**
- * @brief Keyboard handler for the game
- * @param event Event data
- * @param user_data Game data
- */
-void game_keyboard_handler(Event* event, void* user_data);
-
-/**
- * @brief Timer handler for the game
- * @param event Event data
- * @param user_data Game data
- */
-void game_timer_handler(Event* event, void* user_data);
-
-/**
- * @brief Clean up game resources
- * @param engine The game engine
- */
-void game_cleanup(Engine* engine);
-
-/**
- * @brief Process game logic
- * @param state Game state
- * @param delta_time Time elapsed since last update
- */
-void game_update(GameState* state, float delta_time);
-
-#endif /* GAME_H */
+#endif // GAME_H
