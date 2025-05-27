@@ -117,3 +117,25 @@ int (vg_draw_rectangle)(uint16_t x, uint16_t y, uint16_t width, uint16_t height,
     }
   return 0;
 }
+
+
+uint8_t* (draw_xpm)(uint16_t xi, uint16_t yi,xpm_map_t xpm, xpm_image_t xpm_img){  
+    
+  uint8_t* pixmap = xpm_load(xpm, XPM_INDEXED, &xpm_img);
+
+    int width = xpm_img.width;
+    int height = xpm_img.height;
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            uint8_t color_index = pixmap[y * width + x];
+
+            if (color_index != 0) { 
+                vg_draw_pixel(xi + x, yi + y, color_index);
+            }
+        }
+    }
+
+    return pixmap;
+}
+
