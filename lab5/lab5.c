@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include "kbc.h"
+#include "timer.c"
 
 // Any header files included below this line should have been created by you
 
@@ -171,7 +172,7 @@ int(video_test_xpm)(xpm_map_t xpm, uint16_t xi, uint16_t yi) {
     vg_exit();
     return 1;
   }
-  
+
   xpm_image_t img;
 
   uint8_t *pixmap = draw_xpm(xi, yi, xpm, img);
@@ -193,7 +194,104 @@ int(video_test_xpm)(xpm_map_t xpm, uint16_t xi, uint16_t yi) {
 int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint16_t yf,
                      int16_t speed, uint8_t fr_rate) {
 
-  return 1;
+  xpm_image_t img;
+
+  int ipc_status, r;
+  message msg;
+  // u_int8_t array_scancodes[2];
+  uint16_t mode = 0x105;
+  uint8_t timer_bit_no, kbc_bit_no;
+
+  // Subscribe to keyboard interrupts
+  if (subscribe_kbc_interrupts(&kbc_bit_no) != 0) {
+    printf("Failed to subscribe to keyboard interrupts\n");
+    return 1;
+  }
+  if (timer_subscribe_int(&timer_bit_no) != 0) {
+    printf("Failed to subscribe to timer interrupts\n");
+    return 1;
+  }
+
+  if (timer_set_frequency(0, fr_rate) != 0) {
+    timer_unsubscribe_int();
+    unsubscribe_kbc_interrupts();
+    printf("Failed to set timer frequency\n");
+    return 1;
+  }
+
+  if (set_frame_buffer(mode) != 0) {
+    printf("Failed to map frame buffer\n");
+    vg_exit();
+    return 1;
+  }
+
+  if (set_to_video_mode(mode) != 0) {
+    printf("Failed to set video mode\n");
+    return 1;
+  }
+
+  draw_xpm(xi, yi, xpm, img);
+
+  while (array_scancodes[0] != 0x81 && (xi < xf || yi < yf)) {
+    // Get a request message
+    if ((r = driver_receive(ANY, &msg, &ipc_status)) != 0) {
+      printf("driver_receive failed with: %d", r);
+      continue;
+    }
+
+    if (is_ipc_notify(ipc_status)) {
+      switch (_ENDPOINT_P(msg.m_source)) {
+        case HARDWARE:
+          if (msg.m_notify.interrupts & BIT(1)) {
+            kbc_ih(); 
+          }
+          if (msg.m_notify.interrupts & BIT(0)) {
+            timer_int_handler();
+
+            if (vg_draw_rectangle(xi, yi, 100, 100, 0xFFFFFF) != 0) {
+              printf("Failed at screen clean\n");
+              return 1;
+            }
+
+            if (xi < xf) {
+              xi += speed;
+              if (xi > xf)
+                xi = xf;
+            }
+            if (yi < yf) {
+              yi += speed;
+              if (yi > xf)
+                yi = xf;
+            }
+
+            draw_xpm(xi, yi, xpm, img);
+          }
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  //free(pixmap);
+
+  if (vg_exit() != 0) {
+    printf("Failed to exit graphics mode\n");
+    return 1;
+  }
+
+  if (timer_unsubscribe_int() != 0) {
+    printf("Failed to unsubscribe timer\n");
+    return 1;
+  }
+
+  if (unsubscribe_kbc_interrupts() != 0) {
+    printf("Failed to unsubscribe keyboard\n");
+    return 1;
+  }
+
+  printf("video_test_move finished successfully\n");
+  return 0;
 }
 
 int(video_test_controller)() {
