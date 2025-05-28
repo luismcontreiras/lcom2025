@@ -400,8 +400,8 @@ void engine_render_sprites(game_engine_t *engine) {
         
         // Draw sprite at new position
         // This is a simplified version - you might want to implement proper sprite blitting
-         for (uint16_t h = 0; h < sprite->height; h++) {
-             for (uint16_t w = 0; w < sprite->width; w++) {
+         for (int h = 0; h < sprite->height; h++) {
+             for (int w = 0; w < sprite->width; w++) {
                   uint16_t screen_x = sprite->x + h;
                   uint16_t screen_y = sprite->y + w;
                 

@@ -3,28 +3,44 @@
 #include "../engine/game_engine.h"
 
 // XPM for player sprite
-static xpm_row_t const player_xpm[]  = {
-    "16 16 4 1",
+static char* const player_xpm[]  = {
+    "32 32 4 1",
     "  c None",
     ". c #000000",
     "X c #FF0000",
     "o c #FFFFFF",
-    "                ",
-    "      ....      ",
-    "     .XXXX.     ",
-    "    .XXXXXX.    ",
-    "   .XXXXXXXX.   ",
-    "   .XXXXXXXX.   ",
-    "  .XXXXooXXXX.  ",
-    "  .XXXXooXXXX.  ",
-    "  .XXXXXXXXXX.  ",
-    "  .XXXXXXXXXX.  ",
-    "   .XXXXXXXX.   ",
-    "   .X..XX..X.   ",
-    "    .XX..XX.    ",
-    "    ..    ..    ",
-    "                ",
-    "                "
+    "                                ",
+    "                                ",
+    "                                ",
+    "           ........             ",
+    "          ..........            ",
+    "         ............           ",
+    "        ..XXXXXXXX..            ",
+    "       ..XXXXXXXXXX..           ",
+    "      ..XXXXXXXXXXXX..          ",
+    "     ..XXXXXXXXXXXXXX..         ",
+    "     ..XXXXXXXXXXXXXX..         ",
+    "    ..XXXXXXXXXXXXXXXX..        ",
+    "    ..XXXXXXXXXXXXXXXX..        ",
+    "   ..XXXXXXooooooXXXXXX..       ",
+    "   ..XXXXXooooooooXXXXX..       ",
+    "   ..XXXXooooooooooXXXX..       ",
+    "   ..XXXXooooooooooXXXX..       ",
+    "   ..XXXXXooooooooXXXXX..       ",
+    "   ..XXXXXXooooooXXXXXX..       ",
+    "    ..XXXXXXXXXXXXXXXX..        ",
+    "    ..XXXXXXXXXXXXXXXX..        ",
+    "    ..XXXXXXXXXXXXXXXX..        ",
+    "     ..XXXXXXXXXXXXXX..         ",
+    "     ..XXXXXXXXXXXXXX..         ",
+    "      ..XX....XXXX....XX..      ",
+    "      ..XX....XXXX....XX..      ",
+    "       ..XXXX....XXXX..         ",
+    "       ..XXXX....XXXX..         ",
+    "        ....      ....          ",
+    "        ....      ....          ",
+    "                                ",
+    "                                "
 };
 
 // Player state
@@ -44,7 +60,7 @@ void game_update(game_engine_t *engine, float delta_time) {
         }
     }
     if (engine_key_pressed(engine, ARROW_DOWN_SCANCODE)) {
-        if (player.y < engine->screen_height - 16 - player.speed) {
+        if (player.y < engine->screen_height - 32 - player.speed) {
             player.y += player.speed;
         }
     }
@@ -54,7 +70,7 @@ void game_update(game_engine_t *engine, float delta_time) {
         }
     }
     if (engine_key_pressed(engine, ARROW_RIGHT_SCANCODE)) {
-        if (player.x < engine->screen_width - 16 - player.speed) {
+        if (player.x < engine->screen_width - 32 - player.speed) {
             player.x += player.speed;
         }
     }
@@ -87,7 +103,7 @@ int game_init() {
     player.speed = 5; // pixels per frame
     
     // Create sprite from XPM
-    player.sprite_id = engine_create_sprite(&engine, player_xpm, player.x, player.y);
+    player.sprite_id = engine_create_sprite(&engine, (xpm_map_t)player_xpm, player.x, player.y);
     if (player.sprite_id < 0) {
         printf("Failed to create player sprite\n");
         engine_cleanup(&engine);
