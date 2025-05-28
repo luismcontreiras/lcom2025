@@ -73,7 +73,7 @@ int game_init() {
     game_engine_t engine;
     
     // Initialize with 0x105 mode (1024x768) at 60 FPS
-    if (engine_init(&engine, 0x105, 60) != 0) {
+    if (engine_init(&engine, 0x115, 60) != 0) {
         printf("Failed to initialize game engine\n");
         return 1;
     }
@@ -81,9 +81,9 @@ int game_init() {
     // Clear the screen to black
     engine_clear_screen(&engine, 0x000000);
     
-    // Create player sprite
-    player.x = engine.screen_width / 2 - 8;  // center of screen
-    player.y = engine.screen_height / 2 - 8; // center of screen
+    // Create player spriteprintf("Sprite is visible!")
+    player.x = 15;  // center of screen
+    player.y = 15; // center of screen
     player.speed = 5; // pixels per frame
     
     // Create sprite from XPM
