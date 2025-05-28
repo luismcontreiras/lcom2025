@@ -396,7 +396,7 @@ void engine_render_sprites(game_engine_t *engine) {
             };
         }
 
-        vg_draw_rectangle(15, 15, 200, 200, 0xFFFAAA);
+        //vg_draw_rectangle(15, 15, 200, 200, 0xFFFAAA);
         
         // Draw sprite at new position
         // This is a simplified version - you might want to implement proper sprite blitting
