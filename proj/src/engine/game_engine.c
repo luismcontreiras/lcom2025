@@ -79,7 +79,7 @@ int engine_init(game_engine_t *engine, uint16_t mode, uint8_t fps) {
     // Initialize sprites
     for (int i = 0; i < MAX_SPRITES; i++) {
         engine->sprites[i].visible = false;
-        engine->sprites[i].pixmap = NULL;
+        engine->sprites[i].color = NULL;
     }
     
     engine->running = true;
@@ -101,9 +101,9 @@ void engine_cleanup(game_engine_t *engine) {
     
     // Clean up sprites
     for (int i = 0; i < MAX_SPRITES; i++) {
-        if (engine->sprites[i].pixmap) {
-            free(engine->sprites[i].pixmap);
-            engine->sprites[i].pixmap = NULL;
+        if (engine->sprites[i].color) {
+            free(engine->sprites[i].color);
+            engine->sprites[i].color = NULL;
         }
     }
     
@@ -216,9 +216,9 @@ int engine_create_sprite(game_engine_t *engine, xpm_map_t xpm, uint16_t x, uint1
     if (!engine || engine->sprite_count >= MAX_SPRITES) return -1;
     
     xpm_image_t img;
-    uint8_t *pixmap = xpm_load(xpm, XPM_8_8_8_8, &img);
+    uint32_t *color =(uint32_t *) xpm_load(xpm, XPM_8_8_8_8, &img);
     
-    if (!pixmap) {
+    if (!color) {
         printf("Erro xpm_load\n");
         return -1;
     } 
@@ -226,7 +226,7 @@ int engine_create_sprite(game_engine_t *engine, xpm_map_t xpm, uint16_t x, uint1
     int sprite_id = engine->sprite_count++;
     sprite_t *sprite = &engine->sprites[sprite_id];
     
-    sprite->pixmap = pixmap;
+    sprite->color = color;
     sprite->x = x;
     sprite->y = y;
     sprite->old_x = x;
@@ -247,10 +247,10 @@ int engine_create_sprite_from_data(game_engine_t *engine, uint8_t *data, uint16_
     
     // Copy pixel data
     size_t data_size = width * height * (mode_info.BitsPerPixel / 8);
-    sprite->pixmap = malloc(data_size);
-    if (!sprite->pixmap) return -1;
+    sprite->color = malloc(data_size);
+    if (!sprite->color) return -1;
     
-    memcpy(sprite->pixmap, data, data_size);
+    memcpy(sprite->color, data, data_size);
     
     sprite->x = x;
     sprite->y = y;
@@ -298,9 +298,9 @@ void engine_destroy_sprite(game_engine_t *engine, uint8_t sprite_id) {
     
     sprite_t *sprite = &engine->sprites[sprite_id];
     
-    if (sprite->pixmap) {
-        free(sprite->pixmap);
-        sprite->pixmap = NULL;
+    if (sprite->color) {
+        free(sprite->color);
+        sprite->color = NULL;
     }
     
     sprite->visible = false;
@@ -386,12 +386,12 @@ void engine_render_sprites(game_engine_t *engine) {
     for (int i = 0; i < engine->sprite_count; i++) {
         sprite_t *sprite = &engine->sprites[i];
         
-        if (!sprite->visible || !sprite->dirty || !sprite->pixmap) continue;
+        if (!sprite->visible || !sprite->dirty || !sprite->color) continue;
         printf("Sprite is visible!\n");
         // Clear old position if sprite moved
         if (sprite->old_x != sprite->x || sprite->old_y != sprite->y) {
             printf("Enter draw rect %d %d %d %d\n", sprite->old_x, sprite->old_y, sprite->width, sprite->height);
-            if(vg_draw_rectangle(sprite->old_x, sprite->old_y, sprite->width, sprite->height, 0xFFFAAA)){
+            if(vg_draw_rectangle(sprite->old_x, sprite->old_y, sprite->width, sprite->height, 0x000000)){
                 printf("Rectangle error \n");
             };
         }
@@ -400,15 +400,15 @@ void engine_render_sprites(game_engine_t *engine) {
         
         // Draw sprite at new position
         // This is a simplified version - you might want to implement proper sprite blitting
-         for (uint16_t y = 0; y < sprite->height; y++) {
-             for (uint16_t x = 0; x < sprite->width; x++) {
-                 uint16_t screen_x = sprite->x + x;
-                 uint16_t screen_y = sprite->y + y;
+         for (uint16_t h = 0; h < sprite->height; h++) {
+             for (uint16_t w = 0; w < sprite->width; w++) {
+                  uint16_t screen_x = sprite->x + h;
+                  uint16_t screen_y = sprite->y + w;
                 
                  if (screen_x < engine->screen_width && screen_y < engine->screen_height) {
-                     uint32_t color = 0; // Extract color from sprite->pixmap
+                      // Extract color from sprite->color
                      // This would need proper color extraction based on your pixel format
-                     vg_draw_pixel(screen_x, screen_y, color);
+                     vg_draw_pixel(sprite->x  + w, sprite->y+ h, sprite->color[w + h*sprite->width]);
                  }
              }
          }

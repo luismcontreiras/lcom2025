@@ -27,7 +27,7 @@ typedef struct {
 
 // Sprite structure
 typedef struct sprite {
-    uint8_t *pixmap;          // Sprite pixel data
+    uint32_t *color;          // Sprite pixel data
     uint16_t x, y;            // Position
     uint16_t width, height;   // Dimensions
     bool visible;             // Visibility flag
