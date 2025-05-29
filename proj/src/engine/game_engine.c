@@ -411,49 +411,48 @@ void engine_update_sprites(game_engine_t *engine) {
 }
 
 void engine_render_sprites(game_engine_t *engine) {
-    if (!engine){
-        printf("Engine fail\n");
-      return;  
-    } 
-     printf("Enter render\n");
+    if (!engine) return;
+    
+    // First pass: Clear all dirty sprites at their old positions
     for (int i = 0; i < engine->sprite_count; i++) {
         sprite_t *sprite = &engine->sprites[i];
         
-        if (!sprite->visible || !sprite->dirty || !sprite->color) continue;
-        printf("Sprite is visible!\n");
-        
-        // Clear old position if sprite moved (draw to back buffer)
-        if (sprite->old_x != sprite->x || sprite->old_y != sprite->y) {
-            printf("Enter draw rect %d %d %d %d\n", sprite->old_x, sprite->old_y, sprite->width, sprite->height);
-            if(vg_draw_rectangle_buffer(engine->back_buffer, sprite->old_x, sprite->old_y, 
-                                       sprite->width, sprite->height, 0x000000, 
-                                       engine->screen_width, engine->bytes_per_pixel)){
-                printf("Rectangle error \n");
-            };
+        if (sprite->dirty) {
+            // Clear old position (draw black rectangle to back buffer)
+            vg_draw_rectangle_buffer(engine->back_buffer, sprite->old_x, sprite->old_y, 
+                                   sprite->width, sprite->height, 0x000000, 
+                                   engine->screen_width, engine->bytes_per_pixel);
         }
-
-        // Test rectangle (draw to back buffer)
-        vg_draw_rectangle_buffer(engine->back_buffer, 15, 15, 200, 200, 0xFFFAAA, 
-                                engine->screen_width, engine->bytes_per_pixel);
+    }
+    
+    // Second pass: Draw all visible sprites at their current positions
+    for (int i = 0; i < engine->sprite_count; i++) {
+        sprite_t *sprite = &engine->sprites[i];
         
-        // Draw sprite at new position (to back buffer)
-        // This is a simplified version - you might want to implement proper sprite blitting
-         for (int h = 0; h < sprite->height; h++) {
-             for (int w = 0; w < sprite->width; w++) {
-                  uint16_t screen_x = sprite->x + h;
-                  uint16_t screen_y = sprite->y + w;
+        if (!sprite->visible || !sprite->color) continue;
+        
+        // Draw sprite at current position (to back buffer)
+        for (int h = 0; h < sprite->height; h++) {
+            for (int w = 0; w < sprite->width; w++) {
+                uint16_t screen_x = sprite->x + w;
+                uint16_t screen_y = sprite->y + h;
                 
-                 if (screen_x < engine->screen_width && screen_y < engine->screen_height) {
-                      // Extract color from sprite->color and draw to back buffer
-                     vg_draw_pixel_buffer(engine->back_buffer, sprite->x + w, sprite->y + h, 
-                                         sprite->color[w + h*sprite->width], 
-                                         engine->screen_width, engine->bytes_per_pixel);
-                 }
-             }
-         }
-
+                if (screen_x < engine->screen_width && screen_y < engine->screen_height) {
+                    // Extract color from sprite->color and draw to back buffer
+                    uint32_t pixel_color = sprite->color[w + h * sprite->width];
+                    
+                    // Skip transparent pixels (assuming 0x000000 or similar is transparent)
+                    if (pixel_color != 0x000000) {
+                        vg_draw_pixel_buffer(engine->back_buffer, screen_x, screen_y, 
+                                           pixel_color, engine->screen_width, engine->bytes_per_pixel);
+                    }
+                }
+            }
+        }
+        
         sprite->dirty = false;
         sprite->old_x = sprite->x;
         sprite->old_y = sprite->y;
     }
 }
+
