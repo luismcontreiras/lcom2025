@@ -1,10 +1,8 @@
 #ifndef GAME_H
 #define GAME_H
 
-#define ARROW_UP_SCANCODE    0x48
-#define ARROW_DOWN_SCANCODE  0x50
-#define ARROW_LEFT_SCANCODE  0x4B
-#define ARROW_RIGHT_SCANCODE 0x4D
+#include <stdint.h>
+
 /**
  * @brief Initialize and run the game
  * 
