@@ -433,8 +433,8 @@ void engine_render_sprites(game_engine_t *engine) {
         }
 
         // Test rectangle (draw to back buffer)
-        vg_draw_rectangle_buffer(engine->back_buffer, 15, 15, 200, 200, 0xFFFAAA, 
-                                engine->screen_width, engine->bytes_per_pixel);
+        //vg_draw_rectangle_buffer(engine->back_buffer, 15, 15, 200, 200, 0xFFFAAA, 
+        //                        engine->screen_width, engine->bytes_per_pixel);
         
         // Draw sprite at new position (to back buffer)
         // This is a simplified version - you might want to implement proper sprite blitting
