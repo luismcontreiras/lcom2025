@@ -168,6 +168,28 @@ int write_command_byte(uint8_t cmd_byte) {
     return 0; // Success
 }
 
+int write_kbc_command_port(uint8_t port,uint8_t cmd) {
+    uint8_t status;
+
+    // Wait until the input buffer is not full
+    while (true) {
+        if (read_status_register(&status) != OK) {
+            return 1; // Error
+        }
+        if (!(status & KBC_IBF)) {
+            break;
+        }
+        tickdelay(micros_to_ticks(DELAY_US)); // Delay to avoid busy-waiting
+    }
+
+    // Write the command to the KBC command register
+    if (sys_outb(port, cmd) != OK) {
+        return 1; // Error
+    }
+
+    return 0; // Success
+}
+
 int write_kbc_command(uint8_t cmd) {
     uint8_t status;
 
