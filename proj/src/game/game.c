@@ -89,7 +89,8 @@ void game_update(game_engine_t *engine, float delta_time) {
 }
 
 void game_render(game_engine_t *engine) {
-    // Nothing to do here
+    // The engine automatically calls engine_render_sprites() before this function
+    // You can add additional custom rendering here if needed
 }
 
 int game_init() {
@@ -103,6 +104,11 @@ int game_init() {
     display_text(&engine, "0123456789", 50, 100);
     display_text(&engine, "HELLO WORLD", 50, 150);
     display_text(&engine, "TESTING 123", 50, 200);
+    
+    // Force an initial render and buffer swap to display the text immediately
+    engine_render_sprites(&engine);
+    engine_swap_buffers(&engine);
+    
     engine_set_update_callback(&engine, game_update);
     engine_set_render_callback(&engine, game_render);
     int result = engine_run(&engine);
