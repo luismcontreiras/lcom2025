@@ -74,6 +74,8 @@ void reset_game() {
     
     // Clear screen
     engine_clear_screen(game_engine, 0x000000);
+    engine_show_sprite(game_engine, game_data.player1.sprite_id);
+    engine_show_sprite(game_engine, game_data.player2.sprite_id);
 }
 
 void handle_input() {
