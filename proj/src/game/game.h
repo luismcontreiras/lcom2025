@@ -18,8 +18,8 @@
 
 // Game constants
 #define GRID_SIZE 4
-#define TRAIL_SIZE 2
-#define PLAYER_SPEED 4
+#define TRAIL_SIZE 3
+#define PLAYER_SPEED 3
 #define GAME_WIDTH 800
 #define GAME_HEIGHT 600
 
