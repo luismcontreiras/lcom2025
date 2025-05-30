@@ -61,9 +61,12 @@ void check_collisions();
 void draw_ui();
 bool is_collision(uint16_t x, uint16_t y);
 void update_player_sprite(int player_num);
+
 void update_cursor();
 bool is_mouse_in_start1vs1_area();
 void handle_mouse_click();
+void calculate_front_area(uint16_t x, uint16_t y, int direction, int *front_x, int *front_y, int *front_width, int *front_height);
+
 
 void update_player_sprite(int player_num) {
     if (player_num == 1) {
@@ -261,54 +264,74 @@ void update_players() {
     }
 }
 
-bool is_collision(uint16_t x, uint16_t y) {
-    // Get sprite dimensions
-    int sprite_width = 16;
-    int sprite_height = 16;
-    
-    // Calculate the front area of the sprite based on direction
-    int front_x = x;
-    int front_y = y;
-    int front_width = sprite_width;
-    int front_height = sprite_height;
-    
-    // Determine the front area based on player 1's direction
-    if (x == game_data.player1.x && y == game_data.player1.y) {
-        switch(game_data.player1.direction) {
-            case DIR_UP:
-                front_height = sprite_height / 3;  // Upper third is the front
-                break;
-            case DIR_DOWN:
-                front_y = y + 2 * sprite_height / 3;  // Lower third
-                front_height = sprite_height / 3;
-                break;
-            case DIR_LEFT:
-                front_width = sprite_width / 3;  // Left third
-                break;
-            case DIR_RIGHT:
-                front_x = x + 2 * sprite_width / 3;  // Right third
-                front_width = sprite_width / 3;
-                break;
-        }
+void get_sprite_dimensions(int direction, int *width, int *height) {
+    switch(direction) {
+        case DIR_UP:
+        case DIR_DOWN:
+            *width = 14;
+            *height = 32;
+            break;
+        case DIR_LEFT:
+        case DIR_RIGHT:
+            *width = 32;
+            *height = 14;
+            break;
+        default:
+            *width = 16;
+            *height = 16;
+            break;
     }
-    // Determine the front area based on player 2's direction
-    else if (x == game_data.player2.x && y == game_data.player2.y) {
-        switch(game_data.player2.direction) {
-            case DIR_UP:
-                front_height = sprite_height / 3;  // Upper third is the front
-                break;
-            case DIR_DOWN:
-                front_y = y + 2 * sprite_height / 3;  // Lower third
-                front_height = sprite_height / 3;
-                break;
-            case DIR_LEFT:
-                front_width = sprite_width / 3;  // Left third
-                break;
-            case DIR_RIGHT:
-                front_x = x + 2 * sprite_width / 3;  // Right third
-                front_width = sprite_width / 3;
-                break;
-        }
+}
+
+void calculate_front_area(uint16_t x, uint16_t y, int direction, int *front_x, int *front_y, int *front_width, int *front_height) {
+    // Get sprite dimensions using the get_sprite_dimensions function
+    int sprite_width, sprite_height;
+    get_sprite_dimensions(direction, &sprite_width, &sprite_height);
+    
+    // Initialize front area to full sprite
+    *front_x = x;
+    *front_y = y;
+    *front_width = sprite_width;
+    *front_height = sprite_height;
+    
+    // Determine the front area based on direction
+    switch(direction) {
+        case DIR_UP:            
+            *front_height = sprite_height / 3;  // Upper third is the front
+            break;
+        case DIR_DOWN:
+            *front_y = y + 2 * sprite_height / 3;  // Lower third
+            *front_height = sprite_height / 3;
+            break;
+        case DIR_LEFT:
+            *front_width = sprite_width / 3;  // Left third
+            break;
+        case DIR_RIGHT:
+            *front_x = x + 2 * sprite_width / 3;  // Right third
+            *front_width = sprite_width / 3;
+            break;
+    }
+}
+
+bool is_collision(uint16_t x, uint16_t y) {
+    // Determine which player we're checking and get their direction
+    int direction = -1;
+    if (x == game_data.player1.x && y == game_data.player1.y) {
+        direction = game_data.player1.direction;
+    } else if (x == game_data.player2.x && y == game_data.player2.y) {
+        direction = game_data.player2.direction;
+    }
+    
+    // Calculate the front area of the sprite
+    int front_x, front_y, front_width, front_height;
+    if (direction != -1) {
+        calculate_front_area(x, y, direction, &front_x, &front_y, &front_width, &front_height);
+    } else {
+        // Default dimensions for unknown cases
+        front_x = x;
+        front_y = y;
+        front_width = 16;
+        front_height = 16;
     }
     
     // Check wall collision (using the front area)
@@ -372,56 +395,15 @@ void check_collisions() {
     
     // Check head-on collision using the front areas of both light cycles
     if (game_data.player1.alive && game_data.player2.alive) {
-        // Get sprite dimensions
-        int sprite_width = 16;
-        int sprite_height = 16;
+        // Calculate front areas for both players using the helper function
+        int p1_front_x, p1_front_y, p1_front_width, p1_front_height;
+        int p2_front_x, p2_front_y, p2_front_width, p2_front_height;
         
-        // Calculate front areas for both players
-        int p1_front_x = game_data.player1.x;
-        int p1_front_y = game_data.player1.y;
-        int p1_front_width = sprite_width;
-        int p1_front_height = sprite_height;
+        calculate_front_area(game_data.player1.x, game_data.player1.y, game_data.player1.direction,
+                           &p1_front_x, &p1_front_y, &p1_front_width, &p1_front_height);
         
-        int p2_front_x = game_data.player2.x;
-        int p2_front_y = game_data.player2.y;
-        int p2_front_width = sprite_width;
-        int p2_front_height = sprite_height;
-        
-        // Determine player 1's front area
-        switch(game_data.player1.direction) {
-            case DIR_UP:
-                p1_front_height = sprite_height / 3;  // Upper third is the front
-                break;
-            case DIR_DOWN:
-                p1_front_y = game_data.player1.y + 2 * sprite_height / 3;  // Lower third
-                p1_front_height = sprite_height / 3;
-                break;
-            case DIR_LEFT:
-                p1_front_width = sprite_width / 3;  // Left third
-                break;
-            case DIR_RIGHT:
-                p1_front_x = game_data.player1.x + 2 * sprite_width / 3;  // Right third
-                p1_front_width = sprite_width / 3;
-                break;
-        }
-        
-        // Determine player 2's front area
-        switch(game_data.player2.direction) {
-            case DIR_UP:
-                p2_front_height = sprite_height / 3;  // Upper third is the front
-                break;
-            case DIR_DOWN:
-                p2_front_y = game_data.player2.y + 2 * sprite_height / 3;  // Lower third
-                p2_front_height = sprite_height / 3;
-                break;
-            case DIR_LEFT:
-                p2_front_width = sprite_width / 3;  // Left third
-                break;
-            case DIR_RIGHT:
-                p2_front_x = game_data.player2.x + 2 * sprite_width / 3;  // Right third
-                p2_front_width = sprite_width / 3;
-                break;
-        }
+        calculate_front_area(game_data.player2.x, game_data.player2.y, game_data.player2.direction,
+                           &p2_front_x, &p2_front_y, &p2_front_width, &p2_front_height);
         
         // Check for front areas collision using rectangle intersection
         if (p1_front_x < p2_front_x + p2_front_width &&
