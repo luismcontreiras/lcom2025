@@ -514,8 +514,6 @@ void draw_trails() {
 void draw_ui() {
     if (game_data.state == GAME_MENU) {
         engine_show_sprite(game_engine, menu_title);
-        // Draw title and instructions
-        engine_draw_rectangle(game_engine, 280, 360, 240, 20, 0xFFFFFF);
         
         // Show START text sprites
         for (int i = 0; i < 22; i++) {
@@ -665,31 +663,6 @@ int game_init() {
     // Create cursor sprite
     cursor_sprite = engine_create_sprite(&engine, (xpm_map_t)cursor, 0, 0);
 
-    // Check if all sprites were created successfully
-    for (int i = 0; i < 4; i++) {
-        if (player1_sprites[i] < 0 || player2_sprites[i] < 0) {
-            printf("Failed to create player sprites\n");
-            engine_cleanup(&engine);
-            return 1;
-        }
-    }
-    
-    // Check START sprites
-    for (int i = 0; i < 22; i++) {
-        if (start_sprites[i] < 0) {
-            printf("Failed to create START sprites\n");
-            engine_cleanup(&engine);
-            return 1;
-        }
-    }
-    
-    // Check cursor sprite
-    if (cursor_sprite < 0) {
-        printf("Failed to create cursor sprite\n");
-        engine_cleanup(&engine);
-        return 1;
-    }
-    
     // Hide all sprites initially (they will be shown when appropriate)
     for (int i = 0; i < 4; i++) {
         engine_hide_sprite(&engine, player1_sprites[i]);
