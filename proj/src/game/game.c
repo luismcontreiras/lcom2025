@@ -2,39 +2,30 @@
 #include <lcom/lcf.h>
 #include "../engine/game_engine.h"
 
-// XPM for player 1 sprite (cyan light cycle)
-static char* const player1_xpm[] = {
-    "8 8 2 1",
-    "  c None",
-    "X c #00FFFF",
-    "XXXXXXXX",
-    "XXXXXXXX",
-    "XXXXXXXX",
-    "XXXXXXXX",
-    "XXXXXXXX",
-    "XXXXXXXX",
-    "XXXXXXXX",
-    "XXXXXXXX"
-};
+// Include XPM assets for player 1 (blue)
+#include "tron_assets/tron_blue_up.xpm"
+#include "tron_assets/tron_blue_down.xpm"
+#include "tron_assets/tron_blue_left.xpm"
+#include "tron_assets/tron_blue_right.xpm"
 
-// XPM for player 2 sprite (orange light cycle)
-static char* const player2_xpm[] = {
-    "8 8 2 1",
-    "  c None",
-    "X c #FF8800",
-    "XXXXXXXX",
-    "XXXXXXXX",
-    "XXXXXXXX",
-    "XXXXXXXX",
-    "XXXXXXXX",
-    "XXXXXXXX",
-    "XXXXXXXX",
-    "XXXXXXXX"
-};
+// Include XPM assets for player 2 (orange)
+#include "tron_assets/tron_orange_up.xpm"
+#include "tron_assets/tron_orange_down.xpm"
+#include "tron_assets/tron_orange_left.xpm"
+#include "tron_assets/tron_orange_right.xpm"
+
+// Include explosion assets
+#include "tron_assets/tron_explosion_small.xpm"
+#include "tron_assets/tron_explosion_large.xpm"
 
 // Global game state
 static tron_game_t game_data;
 static game_engine_t *game_engine;
+
+// Sprite IDs for different directions
+static int player1_sprites[4]; // UP, DOWN, LEFT, RIGHT
+static int player2_sprites[4]; 
+static int explosion_sprite_small, explosion_sprite_large;
 
 // Function declarations
 void tron_update(game_engine_t *engine, float delta_time);
@@ -46,18 +37,49 @@ void draw_trails();
 void check_collisions();
 void draw_ui();
 bool is_collision(uint16_t x, uint16_t y);
+void update_player_sprite(int player_num);
+
+void update_player_sprite(int player_num) {
+    if (player_num == 1) {
+        // Hide all player 1 sprites first
+        for (int i = 0; i < 4; i++) {
+            engine_hide_sprite(game_engine, player1_sprites[i]);
+        }
+        
+        // Show the correct sprite based on direction
+        if (game_data.player1.alive) {
+            int sprite_index = game_data.player1.direction;
+            engine_move_sprite(game_engine, player1_sprites[sprite_index], 
+                             game_data.player1.x, game_data.player1.y);
+            engine_show_sprite(game_engine, player1_sprites[sprite_index]);
+        }
+    } else if (player_num == 2) {
+        // Hide all player 2 sprites first
+        for (int i = 0; i < 4; i++) {
+            engine_hide_sprite(game_engine, player2_sprites[i]);
+        }
+        
+        // Show the correct sprite based on direction
+        if (game_data.player2.alive) {
+            int sprite_index = game_data.player2.direction;
+            engine_move_sprite(game_engine, player2_sprites[sprite_index], 
+                             game_data.player2.x, game_data.player2.y);
+            engine_show_sprite(game_engine, player2_sprites[sprite_index]);
+        }
+    }
+}
 
 void reset_game() {
     game_data.state = GAME_PLAYING;
     game_data.frame_counter = 0;
     game_data.winner = 0;
     
-    // Initialize player 1 (cyan - left side)
+    // Initialize player 1 (blue - left side)
     game_data.player1.x = 100;
     game_data.player1.y = 300;
     game_data.player1.direction = DIR_RIGHT;
     game_data.player1.next_direction = DIR_RIGHT;
-    game_data.player1.color = 0x00FFFF; // Cyan
+    game_data.player1.color = 0x0080FF; // Blue
     game_data.player1.alive = true;
     
     // Initialize player 2 (orange - right side)
@@ -74,8 +96,14 @@ void reset_game() {
     
     // Clear screen
     engine_clear_screen(game_engine, 0x000000);
-    engine_show_sprite(game_engine, game_data.player1.sprite_id);
-    engine_show_sprite(game_engine, game_data.player2.sprite_id);
+    
+    // Hide explosion sprites
+    engine_hide_sprite(game_engine, explosion_sprite_small);
+    engine_hide_sprite(game_engine, explosion_sprite_large);
+    
+    // Update player sprites to show correct direction
+    update_player_sprite(1);
+    update_player_sprite(2);
 }
 
 void handle_input() {
@@ -121,9 +149,21 @@ void update_players() {
     // Update every few frames to control speed
     if (game_data.frame_counter % PLAYER_SPEED != 0) return;
     
+    // Check if direction changed to update sprites
+    bool p1_direction_changed = (game_data.player1.direction != game_data.player1.next_direction);
+    bool p2_direction_changed = (game_data.player2.direction != game_data.player2.next_direction);
+    
     // Update player directions
     game_data.player1.direction = game_data.player1.next_direction;
     game_data.player2.direction = game_data.player2.next_direction;
+    
+    // Update sprites if direction changed
+    if (p1_direction_changed) {
+        update_player_sprite(1);
+    }
+    if (p2_direction_changed) {
+        update_player_sprite(2);
+    }
     
     // Add current positions to trails before moving
     if (game_data.player1.alive && game_data.trail1_length < 10000) {
@@ -146,6 +186,10 @@ void update_players() {
             case DIR_LEFT:  game_data.player1.x -= GRID_SIZE; break;
             case DIR_RIGHT: game_data.player1.x += GRID_SIZE; break;
         }
+        // Update sprite position
+        int sprite_index = game_data.player1.direction;
+        engine_move_sprite(game_engine, player1_sprites[sprite_index], 
+                         game_data.player1.x, game_data.player1.y);
     }
     
     if (game_data.player2.alive) {
@@ -155,14 +199,10 @@ void update_players() {
             case DIR_LEFT:  game_data.player2.x -= GRID_SIZE; break;
             case DIR_RIGHT: game_data.player2.x += GRID_SIZE; break;
         }
-    }
-    
-    // Update sprite positions
-    if (game_data.player1.alive) {
-        engine_move_sprite(game_engine, game_data.player1.sprite_id, game_data.player1.x, game_data.player1.y);
-    }
-    if (game_data.player2.alive) {
-        engine_move_sprite(game_engine, game_data.player2.sprite_id, game_data.player2.x, game_data.player2.y);
+        // Update sprite position
+        int sprite_index = game_data.player2.direction;
+        engine_move_sprite(game_engine, player2_sprites[sprite_index], 
+                         game_data.player2.x, game_data.player2.y);
     }
 }
 
@@ -200,12 +240,25 @@ void check_collisions() {
     if (game_data.player1.alive && is_collision(game_data.player1.x, game_data.player1.y)) {
         game_data.player1.alive = false;
         p1_collision = true;
+        
+        // Show explosion at player 1 position
+        engine_move_sprite(game_engine, explosion_sprite_small, 
+                         game_data.player1.x, game_data.player1.y);
+        engine_show_sprite(game_engine, explosion_sprite_small);
     }
     
     // Check player 2 collision
     if (game_data.player2.alive && is_collision(game_data.player2.x, game_data.player2.y)) {
         game_data.player2.alive = false;
         p2_collision = true;
+        
+        // Show explosion at player 2 position
+        if (!p1_collision) {
+            // Use small explosion if only player 2 collided
+            engine_move_sprite(game_engine, explosion_sprite_small, 
+                             game_data.player2.x, game_data.player2.y);
+            engine_show_sprite(game_engine, explosion_sprite_small);
+        }
     }
     
     // Check head-on collision
@@ -216,6 +269,13 @@ void check_collisions() {
             game_data.player2.alive = false;
             p1_collision = true;
             p2_collision = true;
+            
+            // Show large explosion for head-on collision
+            engine_hide_sprite(game_engine, explosion_sprite_small);
+            int explosion_x = (game_data.player1.x + game_data.player2.x) / 2;
+            int explosion_y = (game_data.player1.y + game_data.player2.y) / 2;
+            engine_move_sprite(game_engine, explosion_sprite_large, explosion_x, explosion_y);
+            engine_show_sprite(game_engine, explosion_sprite_large);
         }
     }
     
@@ -233,10 +293,14 @@ void check_collisions() {
     
     // Hide sprites if players are dead
     if (!game_data.player1.alive) {
-        engine_hide_sprite(game_engine, game_data.player1.sprite_id);
+        for (int i = 0; i < 4; i++) {
+            engine_hide_sprite(game_engine, player1_sprites[i]);
+        }
     }
     if (!game_data.player2.alive) {
-        engine_hide_sprite(game_engine, game_data.player2.sprite_id);
+        for (int i = 0; i < 4; i++) {
+            engine_hide_sprite(game_engine, player2_sprites[i]);
+        }
     }
 }
 
@@ -315,19 +379,38 @@ int game_init() {
     // Clear the screen to black
     engine_clear_screen(&engine, 0x000000);
     
-    // Create player sprites
-    game_data.player1.sprite_id = engine_create_sprite(&engine, (xpm_map_t)player1_xpm, 100, 300);
-    game_data.player2.sprite_id = engine_create_sprite(&engine, (xpm_map_t)player2_xpm, 700, 300);
+    // Create player 1 sprites (blue) for all directions
+    player1_sprites[DIR_UP] = engine_create_sprite(&engine, (xpm_map_t)tron_blue_up, 100, 300);
+    player1_sprites[DIR_DOWN] = engine_create_sprite(&engine, (xpm_map_t)tron_blue_down, 100, 300);
+    player1_sprites[DIR_LEFT] = engine_create_sprite(&engine, (xpm_map_t)tron_blue_left, 100, 300);
+    player1_sprites[DIR_RIGHT] = engine_create_sprite(&engine, (xpm_map_t)tron_blue_right, 100, 300);
     
-    if (game_data.player1.sprite_id < 0 || game_data.player2.sprite_id < 0) {
-        printf("Failed to create player sprites\n");
-        engine_cleanup(&engine);
-        return 1;
+    // Create player 2 sprites (orange) for all directions
+    player2_sprites[DIR_UP] = engine_create_sprite(&engine, (xpm_map_t)tron_orange_up, 700, 300);
+    player2_sprites[DIR_DOWN] = engine_create_sprite(&engine, (xpm_map_t)tron_orange_down, 700, 300);
+    player2_sprites[DIR_LEFT] = engine_create_sprite(&engine, (xpm_map_t)tron_orange_left, 700, 300);
+    player2_sprites[DIR_RIGHT] = engine_create_sprite(&engine, (xpm_map_t)tron_orange_right, 700, 300);
+    
+    // Create explosion sprites
+    explosion_sprite_small = engine_create_sprite(&engine, (xpm_map_t)tron_explosion_small, 0, 0);
+    explosion_sprite_large = engine_create_sprite(&engine, (xpm_map_t)tron_explosion_large, 0, 0);
+    
+    // Check if all sprites were created successfully
+    for (int i = 0; i < 4; i++) {
+        if (player1_sprites[i] < 0 || player2_sprites[i] < 0) {
+            printf("Failed to create player sprites\n");
+            engine_cleanup(&engine);
+            return 1;
+        }
     }
     
-    // Show the sprites
-    engine_show_sprite(&engine, game_data.player1.sprite_id);
-    engine_show_sprite(&engine, game_data.player2.sprite_id);
+    // Hide all sprites initially (they will be shown in reset_game)
+    for (int i = 0; i < 4; i++) {
+        engine_hide_sprite(&engine, player1_sprites[i]);
+        engine_hide_sprite(&engine, player2_sprites[i]);
+    }
+    engine_hide_sprite(&engine, explosion_sprite_small);
+    engine_hide_sprite(&engine, explosion_sprite_large);
     
     // Register update and render callbacks
     engine_set_update_callback(&engine, tron_update);

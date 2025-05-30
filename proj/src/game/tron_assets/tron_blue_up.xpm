@@ -2,7 +2,7 @@
 char *tron_blue_up[] = {
 /* columns rows colors chars-per-pixel */
 "14 32 26 1 ",
-"  c #000000",
+"  c None",
 ". c #660066",
 "X c #D800D8",
 "o c #330033",

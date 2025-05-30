@@ -443,6 +443,7 @@ void engine_render_sprites(game_engine_t *engine) {
                 
                  if (screen_x < engine->screen_width && screen_y < engine->screen_height) {
                       // Extract color from sprite->color and draw to back buffer
+                                         
                      vg_draw_pixel_buffer(engine->back_buffer, sprite->x + w, sprite->y + h, 
                                          sprite->color[w + h*sprite->width], 
                                          engine->screen_width, engine->bytes_per_pixel);
