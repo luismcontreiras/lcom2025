@@ -187,13 +187,6 @@ void handle_input() {
         game_data.player2.next_direction = DIR_RIGHT;
     }
     
-    // Game state controls
-    if (game_data.state == GAME_MENU || game_data.state == GAME_OVER) {
-        if (engine_key_pressed(game_engine, SPACE_SCANCODE) || engine_key_pressed(game_engine, ENTER_SCANCODE)) {
-            reset_game();
-        }
-    }
-    
     // Handle mouse clicks
     handle_mouse_click();
 }
