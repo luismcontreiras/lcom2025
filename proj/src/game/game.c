@@ -556,8 +556,14 @@ void draw_ui() {
 
 void update_cursor() {
     // Update cursor position based on mouse position
-    engine_move_sprite(game_engine, cursor_sprite, 
-                     game_engine->input.mouse_x, game_engine->input.mouse_y);
+    // Offset by half the cursor size so the center of the cursor is at the mouse position
+    int cursor_width = 32;  // Cursor sprite is 32x32 pixels
+    int cursor_height = 32;
+    
+    int cursor_x = game_engine->input.mouse_x - cursor_width / 2;
+    int cursor_y = game_engine->input.mouse_y - cursor_height / 2;
+    
+    engine_move_sprite(game_engine, cursor_sprite, cursor_x, cursor_y);
 }
 
 bool is_mouse_in_start1vs1_area() {
@@ -630,7 +636,7 @@ int game_init() {
     // Create menu sprite 
     menu_title = engine_create_sprite(&engine, (xpm_map_t)tron_menu_title, 270, 200);
 
-    // Create START letter sprites
+    // Change to
     // First row: START 1vs1
     start_sprites[0] = engine_create_sprite(&engine, (xpm_map_t)S_xpm, 320, 280); // S
     start_sprites[1] = engine_create_sprite(&engine, (xpm_map_t)T_xpm, 340, 280); // T
