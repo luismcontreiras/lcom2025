@@ -4,3 +4,13 @@ a.exe
 .idea
 .vscode
 *.o
+src/**/*.o
+src/**/*.a
+src/**/*.so
+src/**/*.exe
+src/**/*.bin
+src/**/*.out
+src/**/lab*
+src/**/proj*
+proj*
+proj/src/proj*
