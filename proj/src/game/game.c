@@ -258,20 +258,21 @@ void calculate_front_area(uint16_t x, uint16_t y, int direction, int *front_x, i
     *front_height = sprite_height;
     
     // Determine the front area based on direction
+    // Using 9/20 of the sprite (close to half but not exactly)
     switch(direction) {
         case DIR_UP:            
-            *front_height = sprite_height / 3;  // Upper third is the front
+            *front_height = sprite_height * 9 / 20;  // Front 9/20
             break;
         case DIR_DOWN:
-            *front_y = y + 2 * sprite_height / 3;  // Lower third
-            *front_height = sprite_height / 3;
+            *front_y = y + sprite_height * 11 / 20;  // Back 11/20
+            *front_height = sprite_height * 9 / 20;
             break;
         case DIR_LEFT:
-            *front_width = sprite_width / 3;  // Left third
+            *front_width = sprite_width * 9 / 20;  // Left 9/20
             break;
         case DIR_RIGHT:
-            *front_x = x + 2 * sprite_width / 3;  // Right third
-            *front_width = sprite_width / 3;
+            *front_x = x + sprite_width * 11 / 20;  // Right 9/20
+            *front_width = sprite_width * 9 / 20;
             break;
     }
 }
