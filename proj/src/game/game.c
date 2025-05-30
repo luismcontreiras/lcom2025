@@ -32,12 +32,22 @@
 #include "../engine/assets/alphabet/E.xpm"
 #include "../engine/assets/alphabet/X.xpm"
 #include "../engine/assets/alphabet/I.xpm"
+#include "../engine/assets/alphabet/U.xpm"
+#include "../engine/assets/alphabet/N.xpm"
+#include "../engine/assets/alphabet/M.xpm"
 
 // Include number assets for 1vs1 text
 #include "../engine/assets/numbers/1.xpm"
 
 // Include cursor asset
 #include "../engine/assets/cursor.xpm"
+
+#include "tron_assets/blue_wins.xpm"
+#include "tron_assets/orange_wins.xpm"
+#include "tron_assets/blue_wins_text.xpm"
+#include "tron_assets/orange_wins_text.xpm"
+#include "tron_assets/draw.xpm"
+#include "tron_assets/draw_text.xpm"
 
 // Global game state
 static tron_game_t game_data;
@@ -48,7 +58,12 @@ static int player1_sprites[4]; // UP, DOWN, LEFT, RIGHT
 static int player2_sprites[4]; 
 static int explosion_sprite_small, explosion_sprite_large, menu_title;
 static int start_sprites[22]; // S, T, A, R, T, space, 1, v, s, 1 (first row) + S, T, A, R, T, space, H, v, s, C (second row) + E, X, I, T (third row)
+static int end_sprites[8]; // M, E, N, U (first row) + E, X, I, T (second row)
 static int cursor_sprite; // Mouse cursor sprite
+static int blue_wins_sprite, orange_wins_sprite;
+static int orange_wins_title,blue_wins_title;
+static int draw_sprite; // Draw sprite for draw state
+static int draw_text_sprite; // Text for draw state
 
 // Function declarations
 void tron_update(game_engine_t *engine, float delta_time);
@@ -64,6 +79,8 @@ void update_player_sprite(int player_num);
 
 void update_cursor();
 bool is_mouse_in_start1vs1_area();
+bool is_mouse_in_menu_area();
+void return_to_menu();
 void handle_mouse_click();
 void calculate_front_area(uint16_t x, uint16_t y, int direction, int *front_x, int *front_y, int *front_width, int *front_height);
 
@@ -515,7 +532,6 @@ void draw_trails() {
 void draw_ui() {
     if (game_data.state == GAME_MENU) {
         engine_show_sprite(game_engine, menu_title);
-        
         // Show START text sprites
         for (int i = 0; i < 22; i++) {
             engine_show_sprite(game_engine, start_sprites[i]);
@@ -524,25 +540,27 @@ void draw_ui() {
         // Show cursor in menu
         engine_show_sprite(game_engine, cursor_sprite);
     } else if (game_data.state == GAME_OVER) {
-        // Hide START text sprites when not in menu
-        for (int i = 0; i < 22; i++) {
-            engine_hide_sprite(game_engine, start_sprites[i]);
-        }
-        // Hide cursor in game over state
-        engine_hide_sprite(game_engine, cursor_sprite);
-        
-        // Draw game over screen
-        engine_draw_rectangle(game_engine, 300, 200, 200, 40, 0xFFFFFF);
+        // Show cursor in game over state so users can click on MENU/EXIT
+        engine_show_sprite(game_engine, cursor_sprite);
         
         if (game_data.winner == 0) {
-            engine_draw_rectangle(game_engine, 350, 260, 100, 20, 0xFFFFFF); // "DRAW!"
+            engine_show_sprite(game_engine, draw_sprite);
+            engine_show_sprite(game_engine, draw_text_sprite);
+        } else if (game_data.winner == 2) {
+            engine_show_sprite(game_engine, orange_wins_sprite);
+            engine_show_sprite(game_engine, orange_wins_title);
         } else if (game_data.winner == 1) {
-            engine_draw_rectangle(game_engine, 300, 260, 200, 20, game_data.player1.color); // "PLAYER 1 WINS!"
+            engine_show_sprite(game_engine, blue_wins_sprite);
+            engine_show_sprite(game_engine, blue_wins_title);
         } else {
-            engine_draw_rectangle(game_engine, 300, 260, 200, 20, game_data.player2.color); // "PLAYER 2 WINS!"
+            engine_show_sprite(game_engine, orange_wins_sprite);
+            engine_show_sprite(game_engine, orange_wins_title);
+        }
+
+        for (int i = 0; i < 8; i++) {
+            engine_show_sprite(game_engine, end_sprites[i]);
         }
         
-        engine_draw_rectangle(game_engine, 280, 320, 240, 20, 0xFFFFFF); // "PRESS SPACE TO RESTART"
     } else if (game_data.state == GAME_PLAYING) {
         // Hide menu elements when playing
         engine_hide_sprite(game_engine, menu_title);
@@ -555,9 +573,10 @@ void draw_ui() {
 }
 
 void update_cursor() {
-    // Update cursor position based on mouse position
+    // Update cursor position based on mouse position, centering the cursor sprite
+    // Cursor is 32x32 pixels, so we offset by half (16 pixels) in each direction
     engine_move_sprite(game_engine, cursor_sprite, 
-                     game_engine->input.mouse_x, game_engine->input.mouse_y);
+                     game_engine->input.mouse_x - 16, game_engine->input.mouse_y - 16);
 }
 
 bool is_mouse_in_start1vs1_area() {
@@ -570,10 +589,54 @@ bool is_mouse_in_start1vs1_area() {
             mouse_y >= 280 && mouse_y <= 295);
 }
 
+bool is_mouse_in_menu_area() {
+    // Check if mouse is within the "MENU" text area in game over screen
+    // MENU spans from x=370 to x=450 and y=380 to y=400 (approximately)
+    int mouse_x = game_engine->input.mouse_x;
+    int mouse_y = game_engine->input.mouse_y;
+    
+    return (mouse_x >= 370 && mouse_x <= 450 && 
+            mouse_y >= 380 && mouse_y <= 400);
+}
+
+void return_to_menu() {
+    // Reset game state to menu
+    game_data.state = GAME_MENU;
+    game_data.winner = 0;
+    
+    // Clear screen
+    engine_clear_screen(game_engine, 0x000000);
+    
+    // Hide all game over elements
+    engine_hide_sprite(game_engine, blue_wins_sprite);
+    engine_hide_sprite(game_engine, orange_wins_sprite);
+    engine_hide_sprite(game_engine, blue_wins_title);
+    engine_hide_sprite(game_engine, orange_wins_title);
+    engine_hide_sprite(game_engine, explosion_sprite_small);
+    engine_hide_sprite(game_engine, explosion_sprite_large);
+    engine_hide_sprite(game_engine, draw_sprite);
+    engine_hide_sprite(game_engine, draw_text_sprite);
+    
+    // Hide end sprites (MENU/EXIT)
+    for (int i = 0; i < 8; i++) {
+        engine_hide_sprite(game_engine, end_sprites[i]);
+    }
+    
+    // Hide player sprites
+    for (int i = 0; i < 4; i++) {
+        engine_hide_sprite(game_engine, player1_sprites[i]);
+        engine_hide_sprite(game_engine, player2_sprites[i]);
+    }
+}
+
 void handle_mouse_click() {
     if (game_data.state == GAME_MENU && engine_mouse_clicked(game_engine, 0)) { // Left mouse button
         if (is_mouse_in_start1vs1_area()) {
             reset_game(); // Start the game
+        }
+    } else if (game_data.state == GAME_OVER && engine_mouse_clicked(game_engine, 0)) { // Left mouse button
+        if (is_mouse_in_menu_area()) {
+            return_to_menu(); // Return to main menu
         }
     }
 }
@@ -661,8 +724,28 @@ int game_init() {
     start_sprites[20] = engine_create_sprite(&engine, (xpm_map_t)I_xpm, 420, 340); // I
     start_sprites[21] = engine_create_sprite(&engine, (xpm_map_t)T_xpm, 440, 340); // T
 
+
+    // Create win screen sprites
+    blue_wins_sprite = engine_create_sprite(&engine, (xpm_map_t)blue_wins, 0, 0);
+    orange_wins_sprite = engine_create_sprite(&engine, (xpm_map_t)orange_wins, 0, 0);
+    blue_wins_title = engine_create_sprite(&engine, (xpm_map_t)blue_wins_text, 115, 200);
+    orange_wins_title = engine_create_sprite(&engine, (xpm_map_t)orange_wins_text, 60, 200);
+    draw_sprite = engine_create_sprite(&engine, (xpm_map_t)draw, 0, 0);
+    draw_text_sprite = engine_create_sprite(&engine, (xpm_map_t)draw_text, 240, 200);
+
+    end_sprites[0] = engine_create_sprite(&engine, (xpm_map_t)M_xpm, 370, 380); // M
+    end_sprites[1] = engine_create_sprite(&engine, (xpm_map_t)E_xpm, 390, 380); // E
+    end_sprites[2] = engine_create_sprite(&engine, (xpm_map_t)N_xpm, 410, 380); // N
+    end_sprites[3] = engine_create_sprite(&engine, (xpm_map_t)U_xpm, 430, 380); // U
+
+    end_sprites[4] = engine_create_sprite(&engine, (xpm_map_t)E_xpm, 370, 410); // E
+    end_sprites[5] = engine_create_sprite(&engine, (xpm_map_t)X_xpm, 390, 410); // X
+    end_sprites[6] = engine_create_sprite(&engine, (xpm_map_t)I_xpm, 410, 410); // I
+    end_sprites[7] = engine_create_sprite(&engine, (xpm_map_t)T_xpm, 430, 410); // T
+
     // Create cursor sprite
     cursor_sprite = engine_create_sprite(&engine, (xpm_map_t)cursor, 0, 0);
+
 
     // Hide all sprites initially (they will be shown when appropriate)
     for (int i = 0; i < 4; i++) {
@@ -672,10 +755,20 @@ int game_init() {
     for (int i = 0; i < 22; i++) {
         engine_hide_sprite(&engine, start_sprites[i]);
     }
+    for (int i = 0; i < 8; i++) {
+        engine_hide_sprite(&engine, end_sprites[i]);
+    }
     engine_hide_sprite(&engine, explosion_sprite_small);
     engine_hide_sprite(&engine, explosion_sprite_large);
     engine_hide_sprite(&engine, menu_title);
     engine_hide_sprite(&engine, cursor_sprite);
+    engine_hide_sprite(&engine, blue_wins_sprite);
+    engine_hide_sprite(&engine, orange_wins_sprite);
+    engine_hide_sprite(&engine, blue_wins_title);
+    engine_hide_sprite(&engine, orange_wins_title);
+    engine_hide_sprite(&engine, draw_sprite);
+    engine_hide_sprite(&engine, draw_text_sprite);
+
     
     // Register update and render callbacks
     engine_set_update_callback(&engine, tron_update);
