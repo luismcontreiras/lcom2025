@@ -2,7 +2,7 @@
 static char *tron_explosion_small[] = {
 /* columns rows colors chars-per-pixel */
 "21 20 26 1 ",
-"  c None",
+"  c #000000",
 ". c #660066",
 "X c #D800D8",
 "o c #330033",

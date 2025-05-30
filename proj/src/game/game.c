@@ -18,6 +18,27 @@
 #include "tron_assets/tron_explosion_small.xpm"
 #include "tron_assets/tron_explosion_large.xpm"
 
+// Include menu assets
+#include "tron_assets/tron_menu_title.xpm"
+
+// Include alphabet assets for START text
+#include "../engine/assets/alphabet/S.xpm"
+#include "../engine/assets/alphabet/T.xpm"
+#include "../engine/assets/alphabet/A.xpm"
+#include "../engine/assets/alphabet/R.xpm"
+#include "../engine/assets/alphabet/V.xpm"
+#include "../engine/assets/alphabet/H.xpm"
+#include "../engine/assets/alphabet/C.xpm"
+#include "../engine/assets/alphabet/E.xpm"
+#include "../engine/assets/alphabet/X.xpm"
+#include "../engine/assets/alphabet/I.xpm"
+
+// Include number assets for 1vs1 text
+#include "../engine/assets/numbers/1.xpm"
+
+// Include cursor asset
+#include "../engine/assets/cursor.xpm"
+
 // Global game state
 static tron_game_t game_data;
 static game_engine_t *game_engine;
@@ -25,7 +46,9 @@ static game_engine_t *game_engine;
 // Sprite IDs for different directions
 static int player1_sprites[4]; // UP, DOWN, LEFT, RIGHT
 static int player2_sprites[4]; 
-static int explosion_sprite_small, explosion_sprite_large;
+static int explosion_sprite_small, explosion_sprite_large, menu_title;
+static int start_sprites[22]; // S, T, A, R, T, space, 1, v, s, 1 (first row) + S, T, A, R, T, space, H, v, s, C (second row) + E, X, I, T (third row)
+static int cursor_sprite; // Mouse cursor sprite
 
 // Function declarations
 void tron_update(game_engine_t *engine, float delta_time);
@@ -38,6 +61,9 @@ void check_collisions();
 void draw_ui();
 bool is_collision(uint16_t x, uint16_t y);
 void update_player_sprite(int player_num);
+void update_cursor();
+bool is_mouse_in_start1vs1_area();
+void handle_mouse_click();
 
 void update_player_sprite(int player_num) {
     if (player_num == 1) {
@@ -101,6 +127,12 @@ void reset_game() {
     engine_hide_sprite(game_engine, explosion_sprite_small);
     engine_hide_sprite(game_engine, explosion_sprite_large);
     
+    // Hide menu elements when starting game
+    engine_hide_sprite(game_engine, menu_title);
+    for (int i = 0; i < 18; i++) {
+        engine_hide_sprite(game_engine, start_sprites[i]);
+    }
+    
     // Update player sprites to show correct direction
     update_player_sprite(1);
     update_player_sprite(2);
@@ -141,6 +173,9 @@ void handle_input() {
             reset_game();
         }
     }
+    
+    // Handle mouse clicks
+    handle_mouse_click();
 }
 
 void update_players() {
@@ -496,12 +531,25 @@ void draw_trails() {
 
 void draw_ui() {
     if (game_data.state == GAME_MENU) {
+        engine_show_sprite(game_engine, menu_title);
         // Draw title and instructions
-        engine_draw_rectangle(game_engine, 300, 200, 200, 40, 0xFFFFFF);
-        engine_draw_rectangle(game_engine, 250, 280, 300, 20, 0xFFFFFF);
-        engine_draw_rectangle(game_engine, 200, 320, 400, 20, 0xFFFFFF);
         engine_draw_rectangle(game_engine, 280, 360, 240, 20, 0xFFFFFF);
+        
+        // Show START text sprites
+        for (int i = 0; i < 22; i++) {
+            engine_show_sprite(game_engine, start_sprites[i]);
+        }
+        
+        // Show cursor in menu
+        engine_show_sprite(game_engine, cursor_sprite);
     } else if (game_data.state == GAME_OVER) {
+        // Hide START text sprites when not in menu
+        for (int i = 0; i < 22; i++) {
+            engine_hide_sprite(game_engine, start_sprites[i]);
+        }
+        // Hide cursor in game over state
+        engine_hide_sprite(game_engine, cursor_sprite);
+        
         // Draw game over screen
         engine_draw_rectangle(game_engine, 300, 200, 200, 40, 0xFFFFFF);
         
@@ -514,6 +562,38 @@ void draw_ui() {
         }
         
         engine_draw_rectangle(game_engine, 280, 320, 240, 20, 0xFFFFFF); // "PRESS SPACE TO RESTART"
+    } else if (game_data.state == GAME_PLAYING) {
+        // Hide menu elements when playing
+        engine_hide_sprite(game_engine, menu_title);
+        for (int i = 0; i < 22; i++) {
+            engine_hide_sprite(game_engine, start_sprites[i]);
+        }
+        // Hide cursor when playing
+        engine_hide_sprite(game_engine, cursor_sprite);
+    }
+}
+
+void update_cursor() {
+    // Update cursor position based on mouse position
+    engine_move_sprite(game_engine, cursor_sprite, 
+                     game_engine->input.mouse_x, game_engine->input.mouse_y);
+}
+
+bool is_mouse_in_start1vs1_area() {
+    // Check if mouse is within the "START 1vs1" text area
+    // START 1vs1 spans from x=320 to x=490 and y=280 to y=295 (approximately)
+    int mouse_x = game_engine->input.mouse_x;
+    int mouse_y = game_engine->input.mouse_y;
+    
+    return (mouse_x >= 320 && mouse_x <= 510 && 
+            mouse_y >= 280 && mouse_y <= 295);
+}
+
+void handle_mouse_click() {
+    if (game_data.state == GAME_MENU && engine_mouse_clicked(game_engine, 0)) { // Left mouse button
+        if (is_mouse_in_start1vs1_area()) {
+            reset_game(); // Start the game
+        }
     }
 }
 
@@ -523,6 +603,7 @@ void tron_update(game_engine_t *engine, float delta_time) {
     handle_input();
     update_players();
     check_collisions();
+    update_cursor();
 }
 
 void tron_render(game_engine_t *engine) {
@@ -565,6 +646,43 @@ int game_init() {
     explosion_sprite_small = engine_create_sprite(&engine, (xpm_map_t)tron_explosion_small, 0, 0);
     explosion_sprite_large = engine_create_sprite(&engine, (xpm_map_t)tron_explosion_large, 0, 0);
     
+    // Create menu sprite 
+    menu_title = engine_create_sprite(&engine, (xpm_map_t)tron_menu_title, 270, 200);
+
+    // Create START letter sprites
+    // First row: START 1vs1
+    start_sprites[0] = engine_create_sprite(&engine, (xpm_map_t)S_xpm, 320, 280); // S
+    start_sprites[1] = engine_create_sprite(&engine, (xpm_map_t)T_xpm, 340, 280); // T
+    start_sprites[2] = engine_create_sprite(&engine, (xpm_map_t)A_xpm, 360, 280); // A
+    start_sprites[3] = engine_create_sprite(&engine, (xpm_map_t)R_xpm, 380, 280); // R
+    start_sprites[4] = engine_create_sprite(&engine, (xpm_map_t)T_xpm, 400, 280); // T
+    // 1vs1 sprites (with space before)
+    start_sprites[5] = engine_create_sprite(&engine, (xpm_map_t)num_1_xpm, 430, 280); // 1
+    start_sprites[6] = engine_create_sprite(&engine, (xpm_map_t)V_xpm, 450, 280); // v
+    start_sprites[7] = engine_create_sprite(&engine, (xpm_map_t)S_xpm, 470, 280); // s
+    start_sprites[8] = engine_create_sprite(&engine, (xpm_map_t)num_1_xpm, 490, 280); // 1
+    
+    // Second row: START HvsC
+    start_sprites[9] = engine_create_sprite(&engine, (xpm_map_t)S_xpm, 320, 310); // S
+    start_sprites[10] = engine_create_sprite(&engine, (xpm_map_t)T_xpm, 340, 310); // T
+    start_sprites[11] = engine_create_sprite(&engine, (xpm_map_t)A_xpm, 360, 310); // A
+    start_sprites[12] = engine_create_sprite(&engine, (xpm_map_t)R_xpm, 380, 310); // R
+    start_sprites[13] = engine_create_sprite(&engine, (xpm_map_t)T_xpm, 400, 310); // T
+    // HvsC sprites (with space before)
+    start_sprites[14] = engine_create_sprite(&engine, (xpm_map_t)H_xpm, 430, 310); // H
+    start_sprites[15] = engine_create_sprite(&engine, (xpm_map_t)V_xpm, 450, 310); // v
+    start_sprites[16] = engine_create_sprite(&engine, (xpm_map_t)S_xpm, 470, 310); // s
+    start_sprites[17] = engine_create_sprite(&engine, (xpm_map_t)C_xpm, 490, 310); // C
+    
+    // Third row: EXIT (centered below HvsC)
+    start_sprites[18] = engine_create_sprite(&engine, (xpm_map_t)E_xpm, 380, 340); // E
+    start_sprites[19] = engine_create_sprite(&engine, (xpm_map_t)X_xpm, 400, 340); // X
+    start_sprites[20] = engine_create_sprite(&engine, (xpm_map_t)I_xpm, 420, 340); // I
+    start_sprites[21] = engine_create_sprite(&engine, (xpm_map_t)T_xpm, 440, 340); // T
+
+    // Create cursor sprite
+    cursor_sprite = engine_create_sprite(&engine, (xpm_map_t)cursor, 0, 0);
+
     // Check if all sprites were created successfully
     for (int i = 0; i < 4; i++) {
         if (player1_sprites[i] < 0 || player2_sprites[i] < 0) {
@@ -574,13 +692,34 @@ int game_init() {
         }
     }
     
-    // Hide all sprites initially (they will be shown in reset_game)
+    // Check START sprites
+    for (int i = 0; i < 22; i++) {
+        if (start_sprites[i] < 0) {
+            printf("Failed to create START sprites\n");
+            engine_cleanup(&engine);
+            return 1;
+        }
+    }
+    
+    // Check cursor sprite
+    if (cursor_sprite < 0) {
+        printf("Failed to create cursor sprite\n");
+        engine_cleanup(&engine);
+        return 1;
+    }
+    
+    // Hide all sprites initially (they will be shown when appropriate)
     for (int i = 0; i < 4; i++) {
         engine_hide_sprite(&engine, player1_sprites[i]);
         engine_hide_sprite(&engine, player2_sprites[i]);
     }
+    for (int i = 0; i < 22; i++) {
+        engine_hide_sprite(&engine, start_sprites[i]);
+    }
     engine_hide_sprite(&engine, explosion_sprite_small);
     engine_hide_sprite(&engine, explosion_sprite_large);
+    engine_hide_sprite(&engine, menu_title);
+    engine_hide_sprite(&engine, cursor_sprite);
     
     // Register update and render callbacks
     engine_set_update_callback(&engine, tron_update);
