@@ -5,8 +5,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-// Forward declarations
-
 
 // Engine constants
 #define MAX_SPRITES 50
@@ -108,5 +106,10 @@ void engine_handle_mouse(game_engine_t *engine);
 void engine_handle_timer(game_engine_t *engine);
 void engine_update_sprites(game_engine_t *engine);
 void engine_render_sprites(game_engine_t *engine);
+
+//txt functions
+xpm_map_t get_char_xpm(char c);
+void display_text(game_engine_t *engine, const char *text, uint16_t start_x, uint16_t start_y);
+
 
 #endif // GAME_ENGINE_H
