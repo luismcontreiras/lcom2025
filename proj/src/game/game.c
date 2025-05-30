@@ -74,12 +74,12 @@ void reset_game() {
     game_data.frame_counter = 0;
     game_data.winner = 0;
     
-    // Initialize player 1 (blue - left side)
+    // Initialize player 1 (cyan - left side)
     game_data.player1.x = 100;
     game_data.player1.y = 300;
     game_data.player1.direction = DIR_RIGHT;
     game_data.player1.next_direction = DIR_RIGHT;
-    game_data.player1.color = 0x0080FF; // Blue
+    game_data.player1.color = 0x0080FFFF; // Cyan
     game_data.player1.alive = true;
     
     // Initialize player 2 (orange - right side)
@@ -165,16 +165,36 @@ void update_players() {
         update_player_sprite(2);
     }
     
-    // Add current positions to trails before moving
+    // Calculate trail emission points based on direction and cycle sizes
+    uint16_t trail_x1 = game_data.player1.x;
+    uint16_t trail_y1 = game_data.player1.y;
+    uint16_t trail_x2 = game_data.player2.x;
+    uint16_t trail_y2 = game_data.player2.y;
+    
+    // Get sprite dimensions based on the XPM files
+    int p1_width = 16;  // Sprite width for player 1
+    int p1_height = 16; // Sprite height for player 1
+    int p2_width = 16;  // Sprite width for player 2
+    int p2_height = 16; // Sprite height for player 2
+    
+    // Add current positions to trails with trails always coming from exact center point
     if (game_data.player1.alive && game_data.trail1_length < 10000) {
-        game_data.trail1[game_data.trail1_length].x = game_data.player1.x;
-        game_data.trail1[game_data.trail1_length].y = game_data.player1.y;
+        // Calculate precise center point
+        uint16_t center_x = trail_x1 + p1_width / 2;  
+        uint16_t center_y = trail_y1 + p1_height / 2;
+        
+        game_data.trail1[game_data.trail1_length].x = center_x;
+        game_data.trail1[game_data.trail1_length].y = center_y;
         game_data.trail1_length++;
     }
     
     if (game_data.player2.alive && game_data.trail2_length < 10000) {
-        game_data.trail2[game_data.trail2_length].x = game_data.player2.x;
-        game_data.trail2[game_data.trail2_length].y = game_data.player2.y;
+        // Calculate precise center point
+        uint16_t center_x = trail_x2 + p2_width / 2;  
+        uint16_t center_y = trail_y2 + p2_height / 2;
+        
+        game_data.trail2[game_data.trail2_length].x = center_x;
+        game_data.trail2[game_data.trail2_length].y = center_y;
         game_data.trail2_length++;
     }
     
@@ -207,22 +227,76 @@ void update_players() {
 }
 
 bool is_collision(uint16_t x, uint16_t y) {
-    // Check wall collision
-    if (x < GRID_SIZE || x >= GAME_WIDTH - GRID_SIZE || y < GRID_SIZE || y >= GAME_HEIGHT - GRID_SIZE) {
+    // Get sprite dimensions
+    int sprite_width = 16;
+    int sprite_height = 16;
+    
+    // Calculate the front area of the sprite based on direction
+    int front_x = x;
+    int front_y = y;
+    int front_width = sprite_width;
+    int front_height = sprite_height;
+    
+    // Determine the front area based on player 1's direction
+    if (x == game_data.player1.x && y == game_data.player1.y) {
+        switch(game_data.player1.direction) {
+            case DIR_UP:
+                front_height = sprite_height / 3;  // Upper third is the front
+                break;
+            case DIR_DOWN:
+                front_y = y + 2 * sprite_height / 3;  // Lower third
+                front_height = sprite_height / 3;
+                break;
+            case DIR_LEFT:
+                front_width = sprite_width / 3;  // Left third
+                break;
+            case DIR_RIGHT:
+                front_x = x + 2 * sprite_width / 3;  // Right third
+                front_width = sprite_width / 3;
+                break;
+        }
+    }
+    // Determine the front area based on player 2's direction
+    else if (x == game_data.player2.x && y == game_data.player2.y) {
+        switch(game_data.player2.direction) {
+            case DIR_UP:
+                front_height = sprite_height / 3;  // Upper third is the front
+                break;
+            case DIR_DOWN:
+                front_y = y + 2 * sprite_height / 3;  // Lower third
+                front_height = sprite_height / 3;
+                break;
+            case DIR_LEFT:
+                front_width = sprite_width / 3;  // Left third
+                break;
+            case DIR_RIGHT:
+                front_x = x + 2 * sprite_width / 3;  // Right third
+                front_width = sprite_width / 3;
+                break;
+        }
+    }
+    
+    // Check wall collision (using the front area)
+    if (front_x < GRID_SIZE || front_x + front_width >= GAME_WIDTH - GRID_SIZE ||
+        front_y < GRID_SIZE || front_y + front_height >= GAME_HEIGHT - GRID_SIZE) {
         return true;
     }
     
-    // Check trail collision
+    // Calculate the center point of the front area
+    uint16_t front_center_x = front_x + front_width / 2;
+    uint16_t front_center_y = front_y + front_height / 2;
+    
+    // Check trail collision using the front center point
     for (int i = 0; i < game_data.trail1_length; i++) {
-        if (abs((int)x - (int)game_data.trail1[i].x) < GRID_SIZE && 
-            abs((int)y - (int)game_data.trail1[i].y) < GRID_SIZE) {
+        if (abs((int)front_center_x - (int)game_data.trail1[i].x) < GRID_SIZE && 
+            abs((int)front_center_y - (int)game_data.trail1[i].y) < GRID_SIZE) {
             return true;
         }
     }
     
     for (int i = 0; i < game_data.trail2_length; i++) {
-        if (abs((int)x - (int)game_data.trail2[i].x) < GRID_SIZE && 
-            abs((int)y - (int)game_data.trail2[i].y) < GRID_SIZE) {
+        if (abs((int)front_center_x - (int)game_data.trail2[i].x) < GRID_SIZE && 
+            abs((int)front_center_y - (int)game_data.trail2[i].y) < GRID_SIZE) {
             return true;
         }
     }
@@ -261,10 +335,64 @@ void check_collisions() {
         }
     }
     
-    // Check head-on collision
+    // Check head-on collision using the front areas of both light cycles
     if (game_data.player1.alive && game_data.player2.alive) {
-        if (abs((int)game_data.player1.x - (int)game_data.player2.x) < GRID_SIZE && 
-            abs((int)game_data.player1.y - (int)game_data.player2.y) < GRID_SIZE) {
+        // Get sprite dimensions
+        int sprite_width = 16;
+        int sprite_height = 16;
+        
+        // Calculate front areas for both players
+        int p1_front_x = game_data.player1.x;
+        int p1_front_y = game_data.player1.y;
+        int p1_front_width = sprite_width;
+        int p1_front_height = sprite_height;
+        
+        int p2_front_x = game_data.player2.x;
+        int p2_front_y = game_data.player2.y;
+        int p2_front_width = sprite_width;
+        int p2_front_height = sprite_height;
+        
+        // Determine player 1's front area
+        switch(game_data.player1.direction) {
+            case DIR_UP:
+                p1_front_height = sprite_height / 3;  // Upper third is the front
+                break;
+            case DIR_DOWN:
+                p1_front_y = game_data.player1.y + 2 * sprite_height / 3;  // Lower third
+                p1_front_height = sprite_height / 3;
+                break;
+            case DIR_LEFT:
+                p1_front_width = sprite_width / 3;  // Left third
+                break;
+            case DIR_RIGHT:
+                p1_front_x = game_data.player1.x + 2 * sprite_width / 3;  // Right third
+                p1_front_width = sprite_width / 3;
+                break;
+        }
+        
+        // Determine player 2's front area
+        switch(game_data.player2.direction) {
+            case DIR_UP:
+                p2_front_height = sprite_height / 3;  // Upper third is the front
+                break;
+            case DIR_DOWN:
+                p2_front_y = game_data.player2.y + 2 * sprite_height / 3;  // Lower third
+                p2_front_height = sprite_height / 3;
+                break;
+            case DIR_LEFT:
+                p2_front_width = sprite_width / 3;  // Left third
+                break;
+            case DIR_RIGHT:
+                p2_front_x = game_data.player2.x + 2 * sprite_width / 3;  // Right third
+                p2_front_width = sprite_width / 3;
+                break;
+        }
+        
+        // Check for front areas collision using rectangle intersection
+        if (p1_front_x < p2_front_x + p2_front_width &&
+            p1_front_x + p1_front_width > p2_front_x &&
+            p1_front_y < p2_front_y + p2_front_height &&
+            p1_front_y + p1_front_height > p2_front_y) {
             game_data.player1.alive = false;
             game_data.player2.alive = false;
             p1_collision = true;
@@ -305,22 +433,64 @@ void check_collisions() {
 }
 
 void draw_trails() {
-    // Draw player 1 trail
-    for (int i = 0; i < game_data.trail1_length; i++) {
-        engine_draw_rectangle(game_engine, 
-                            game_data.trail1[i].x, 
-                            game_data.trail1[i].y, 
-                            TRAIL_SIZE, TRAIL_SIZE, 
-                            game_data.player1.color);
+    if (game_data.trail1_length < 2 && game_data.trail2_length < 2) return;
+    
+    // Draw player 1 trail as continuous segments
+    for (int i = 1; i < game_data.trail1_length; i++) {
+        uint16_t x1 = game_data.trail1[i-1].x;
+        uint16_t y1 = game_data.trail1[i-1].y;
+        uint16_t x2 = game_data.trail1[i].x;
+        uint16_t y2 = game_data.trail1[i].y;
+        
+        // Determine the direction of the trail segment
+        if (x1 == x2) {
+            // Vertical segment
+            uint16_t start_y = (y1 < y2) ? y1 : y2;
+            uint16_t height = (y1 < y2) ? (y2 - y1 + TRAIL_SIZE) : (y1 - y2 + TRAIL_SIZE);
+            engine_draw_rectangle(game_engine, 
+                                x1 - (TRAIL_SIZE), // Double width centered
+                                start_y, 
+                                TRAIL_SIZE * 2, height, 
+                                game_data.player1.color);
+        } else {
+            // Horizontal segment
+            uint16_t start_x = (x1 < x2) ? x1 : x2;
+            uint16_t width = (x1 < x2) ? (x2 - x1 + TRAIL_SIZE) : (x1 - x2 + TRAIL_SIZE);
+            engine_draw_rectangle(game_engine, 
+                                start_x, 
+                                y1 - (TRAIL_SIZE), // Double width centered
+                                width, TRAIL_SIZE * 2, 
+                                game_data.player1.color);
+        }
     }
     
-    // Draw player 2 trail
-    for (int i = 0; i < game_data.trail2_length; i++) {
-        engine_draw_rectangle(game_engine, 
-                            game_data.trail2[i].x, 
-                            game_data.trail2[i].y, 
-                            TRAIL_SIZE, TRAIL_SIZE, 
-                            game_data.player2.color);
+    // Draw player 2 trail as continuous segments
+    for (int i = 1; i < game_data.trail2_length; i++) {
+        uint16_t x1 = game_data.trail2[i-1].x;
+        uint16_t y1 = game_data.trail2[i-1].y;
+        uint16_t x2 = game_data.trail2[i].x;
+        uint16_t y2 = game_data.trail2[i].y;
+        
+        // Determine the direction of the trail segment
+        if (x1 == x2) {
+            // Vertical segment
+            uint16_t start_y = (y1 < y2) ? y1 : y2;
+            uint16_t height = (y1 < y2) ? (y2 - y1 + TRAIL_SIZE) : (y1 - y2 + TRAIL_SIZE);
+            engine_draw_rectangle(game_engine, 
+                                x1 - (TRAIL_SIZE), // Double width centered
+                                start_y, 
+                                TRAIL_SIZE * 2, height, 
+                                game_data.player2.color);
+        } else {
+            // Horizontal segment
+            uint16_t start_x = (x1 < x2) ? x1 : x2;
+            uint16_t width = (x1 < x2) ? (x2 - x1 + TRAIL_SIZE) : (x1 - x2 + TRAIL_SIZE);
+            engine_draw_rectangle(game_engine, 
+                                start_x, 
+                                y1 - (TRAIL_SIZE), // Double width centered
+                                width, TRAIL_SIZE * 2, 
+                                game_data.player2.color);
+        }
     }
 }
 
