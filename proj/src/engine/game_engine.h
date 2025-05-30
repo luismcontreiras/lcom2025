@@ -42,6 +42,9 @@ typedef struct game_engine {
     uint16_t screen_height;
     uint16_t video_mode;
     uint8_t *video_mem;
+    uint8_t *back_buffer;         // Back buffer for double buffering
+    uint32_t buffer_size;         // Size of the buffer in bytes
+    uint8_t bytes_per_pixel;      // Bytes per pixel
     
     // Input
     input_state_t input;
@@ -89,6 +92,7 @@ void engine_destroy_sprite(game_engine_t *engine, uint8_t sprite_id);
 int engine_draw_pixel(game_engine_t *engine, uint16_t x, uint16_t y, uint32_t color);
 int engine_draw_rectangle(game_engine_t *engine, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint32_t color);
 int engine_clear_screen(game_engine_t *engine, uint32_t color);
+int engine_swap_buffers(game_engine_t *engine);  // New function for buffer swapping
 
 // Game loop callback type
 typedef void (*game_update_callback_t)(game_engine_t *engine, float delta_time);

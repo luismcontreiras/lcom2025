@@ -1,7 +1,7 @@
 #include "graphics.h"
 #include <lcom/lcf.h>
 
-static uint8_t *video_mem;
+uint8_t *video_mem;
 
 int(set_to_video_mode)(uint16_t submode) {
   reg86_t reg86;
@@ -138,6 +138,54 @@ int (draw_xpm)(uint16_t xi, uint16_t yi,xpm_map_t xpm){
         }
     }
 
+    return 0;
+}
+
+// Double buffering functions
+int (vg_draw_pixel_buffer)(uint8_t *buffer, uint16_t x, uint16_t y, uint32_t color, uint16_t screen_width, uint8_t bytes_per_pixel) {
+    if (!buffer) return 1;
+    
+    // Calculate memory index where the pixel should be placed
+    unsigned int index = (screen_width * y + x) * bytes_per_pixel;
+    
+    // Copy the color bytes to the buffer at the calculated index
+    if (memcpy(&buffer[index], &color, bytes_per_pixel) == NULL) return 1;
+    
+    return 0;
+}
+
+int (vg_draw_rectangle_buffer)(uint8_t *buffer, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint32_t color, uint16_t screen_width, uint8_t bytes_per_pixel) {
+    if (!buffer) return 1;
+    
+    for(unsigned i = 0; i < height; i++) {
+        for(unsigned j = 0; j < width; j++) {
+            if (vg_draw_pixel_buffer(buffer, x + j, y + i, color, screen_width, bytes_per_pixel) != 0) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+int (vg_clear_buffer)(uint8_t *buffer, uint32_t size, uint32_t color, uint8_t bytes_per_pixel) {
+    if (!buffer) return 1;
+    
+    // For efficiency, we'll fill the buffer by setting each pixel
+    uint32_t num_pixels = size / bytes_per_pixel;
+    
+    for (uint32_t i = 0; i < num_pixels; i++) {
+        memcpy(&buffer[i * bytes_per_pixel], &color, bytes_per_pixel);
+    }
+    
+    return 0;
+}
+
+int (vg_copy_buffer)(uint8_t *dest, uint8_t *src, uint32_t size) {
+    if (!dest || !src) return 1;
+    
+    // Copy the entire buffer at once for maximum efficiency
+    memcpy(dest, src, size);
+    
     return 0;
 }
 

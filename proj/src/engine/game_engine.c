@@ -3,6 +3,7 @@
 #include "kbc.h"
 #include "mouse.h"
 #include <string.h>
+#include <stdlib.h>
 
 // Global callback pointers
 static game_update_callback_t g_update_callback = NULL;
@@ -38,9 +39,21 @@ int engine_init(game_engine_t *engine, uint16_t mode, uint8_t fps) {
         return 1;
     }
     
-    // Store screen dimensions
+    // Store screen dimensions and calculate buffer info
     engine->screen_width = mode_info.XResolution;
     engine->screen_height = mode_info.YResolution;
+    engine->bytes_per_pixel = (mode_info.BitsPerPixel + 7) / 8;
+    engine->buffer_size = engine->screen_width * engine->screen_height * engine->bytes_per_pixel;
+    
+    // Allocate back buffer for double buffering
+    engine->back_buffer = (uint8_t*)malloc(engine->buffer_size);
+    if (!engine->back_buffer) {
+        printf("Failed to allocate back buffer\n");
+        return 1;
+    }
+    
+    // Clear the back buffer
+    vg_clear_buffer(engine->back_buffer, engine->buffer_size, 0x000000, engine->bytes_per_pixel);
     
     // Subscribe to interrupts
     if (subscribe_kbc_interrupts() != 0) {
@@ -107,6 +120,12 @@ void engine_cleanup(game_engine_t *engine) {
         }
     }
     
+    // Free back buffer
+    if (engine->back_buffer) {
+        free(engine->back_buffer);
+        engine->back_buffer = NULL;
+    }
+    
     // Exit graphics mode
     vg_exit();
     
@@ -170,6 +189,9 @@ int engine_run(game_engine_t *engine) {
                         if (g_render_callback) {
                             g_render_callback(engine);
                         }
+                        
+                        // Swap buffers to display the frame
+                        engine_swap_buffers(engine);
                     }
                     break;
                 default:
@@ -308,18 +330,29 @@ void engine_destroy_sprite(game_engine_t *engine, uint8_t sprite_id) {
 }
 
 int engine_draw_pixel(game_engine_t *engine, uint16_t x, uint16_t y, uint32_t color) {
-    if (!engine) return 1;
-    return vg_draw_pixel(x, y, color);
+    if (!engine || !engine->back_buffer) return 1;
+    return vg_draw_pixel_buffer(engine->back_buffer, x, y, color, engine->screen_width, engine->bytes_per_pixel);
 }
 
 int engine_draw_rectangle(game_engine_t *engine, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint32_t color) {
-    if (!engine) return 1;
-    return vg_draw_rectangle(x, y, width, height, color);
+    if (!engine || !engine->back_buffer) return 1;
+    return vg_draw_rectangle_buffer(engine->back_buffer, x, y, width, height, color, engine->screen_width, engine->bytes_per_pixel);
 }
 
 int engine_clear_screen(game_engine_t *engine, uint32_t color) {
-    if (!engine) return 1;
-    return vg_draw_rectangle(0, 0, engine->screen_width, engine->screen_height, color);
+    if (!engine || !engine->back_buffer) return 1;
+    return vg_clear_buffer(engine->back_buffer, engine->buffer_size, color, engine->bytes_per_pixel);
+}
+
+int engine_swap_buffers(game_engine_t *engine) {
+    if (!engine || !engine->back_buffer) return 1;
+    
+    // Get the current video memory pointer from graphics module
+    extern uint8_t *video_mem;
+    if (!video_mem) return 1;
+    
+    // Copy back buffer to video memory
+    return vg_copy_buffer(video_mem, engine->back_buffer, engine->buffer_size);
 }
 
 void engine_set_update_callback(game_engine_t *engine, game_update_callback_t callback) {
@@ -388,17 +421,20 @@ void engine_render_sprites(game_engine_t *engine) {
         
         if (!sprite->visible || !sprite->dirty || !sprite->color) continue;
         printf("Sprite is visible!\n");
-        // Clear old position if sprite moved
+        
+        // Clear old position if sprite moved (draw to back buffer)
         if (sprite->old_x != sprite->x || sprite->old_y != sprite->y) {
             printf("Enter draw rect %d %d %d %d\n", sprite->old_x, sprite->old_y, sprite->width, sprite->height);
-            if(vg_draw_rectangle(sprite->old_x, sprite->old_y, sprite->width, sprite->height, 0x000000)){
+            if(vg_draw_rectangle_buffer(engine->back_buffer, sprite->old_x, sprite->old_y, 
+                                       sprite->width, sprite->height, 0x000000, 
+                                       engine->screen_width, engine->bytes_per_pixel)){
                 printf("Rectangle error \n");
             };
         }
 
         //vg_draw_rectangle(15, 15, 200, 200, 0xFFFAAA);
         
-        // Draw sprite at new position
+        // Draw sprite at new position (to back buffer)
         // This is a simplified version - you might want to implement proper sprite blitting
          for (int h = 0; h < sprite->height; h++) {
              for (int w = 0; w < sprite->width; w++) {
@@ -406,9 +442,10 @@ void engine_render_sprites(game_engine_t *engine) {
                   uint16_t screen_y = sprite->y + w;
                 
                  if (screen_x < engine->screen_width && screen_y < engine->screen_height) {
-                      // Extract color from sprite->color
-                     // This would need proper color extraction based on your pixel format
-                     vg_draw_pixel(sprite->x  + w, sprite->y+ h, sprite->color[w + h*sprite->width]);
+                      // Extract color from sprite->color and draw to back buffer
+                     vg_draw_pixel_buffer(engine->back_buffer, sprite->x + w, sprite->y + h, 
+                                         sprite->color[w + h*sprite->width], 
+                                         engine->screen_width, engine->bytes_per_pixel);
                  }
              }
          }
