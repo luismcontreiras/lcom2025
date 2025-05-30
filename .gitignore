@@ -11,6 +11,5 @@ src/**/*.exe
 src/**/*.bin
 src/**/*.out
 src/**/lab*
-
-
+src/**/proj*
 proj/src/proj*
